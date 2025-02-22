@@ -1,7 +1,10 @@
+
 # FudanCompilerH2025
 
-复旦大学2025年春季编译H课程代码仓库。
+## 环境配置
 
-每个HW发布的代码都是独立成整体的（不需要与其他HW代码结合），分在单独一个Directory下。
+```bash
+sudo apt install -y gcc g++ cmake ninja-build flex bison clang-14 llvm-14 g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf qemu-user zip
 
-注意发布更新通知，及时更新。
+
+```

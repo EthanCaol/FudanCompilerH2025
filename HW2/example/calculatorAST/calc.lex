@@ -1,7 +1,7 @@
 %{
-#include "calc.h"
-#include "y.tab.h"
-int c;
+    #include "calc.h"
+    #include "y.tab.h"
+    int c;
 %}
 %%
 " "       ;

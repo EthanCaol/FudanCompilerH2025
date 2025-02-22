@@ -1,4 +1,4 @@
-#include "MinusIntConverter.hh"
+#include "constantPropagation.hh"
 #include "ASTheader.hh"
 #include "FDMJAST.hh"
 #include <iostream>
@@ -12,11 +12,11 @@ using namespace fdmj;
 #define ExpList vector<Exp*>
 
 // 对外接口函数
-Program* minusIntRewrite(Program* root)
+Program* constantPropagate(Program* root)
 {
     if (root == nullptr)
         return nullptr;
-    MinusIntConverter v(nullptr);
+    ConstantPropagater v(nullptr);
     root->accept(v);
     return dynamic_cast<Program*>(v.newNode);
 }
@@ -28,7 +28,7 @@ Program* minusIntRewrite(Program* root)
 // 3. 更新本层newNode
 
 template <typename T>
-static vector<T*>* visitList(MinusIntConverter& v, vector<T*>* tl)
+static vector<T*>* visitList(ConstantPropagater& v, vector<T*>* tl)
 {
     // 1. 判断参数非空
     if (tl == nullptr || tl->size() == 0)
@@ -58,7 +58,7 @@ static vector<T*>* visitList(MinusIntConverter& v, vector<T*>* tl)
 
 // 程序
 // PROG: MAINMETHOD;
-void MinusIntConverter::visit(Program* node)
+void ConstantPropagater::visit(Program* node)
 {
     // 1. 判断参数非空
     if (node == nullptr) {
@@ -84,7 +84,7 @@ void MinusIntConverter::visit(Program* node)
 
 // 主方法
 // MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' STMLIST '}';
-void MinusIntConverter::visit(MainMethod* node)
+void ConstantPropagater::visit(MainMethod* node)
 {
     // 1. 判断参数非空
     if (node == nullptr) {
@@ -109,7 +109,7 @@ void MinusIntConverter::visit(MainMethod* node)
 
 // 语句: 赋值
 // STM: EXP '=' EXP ';'
-void MinusIntConverter::visit(Assign* node)
+void ConstantPropagater::visit(Assign* node)
 {
     // 1. 判断参数非空
     if (node == nullptr) {
@@ -145,7 +145,7 @@ void MinusIntConverter::visit(Assign* node)
 
 // 语句: 返回
 // STM: RETURN EXP ';'
-void MinusIntConverter::visit(Return* node)
+void ConstantPropagater::visit(Return* node)
 {
     // 1. 判断参数非空
     if (node == nullptr) {
@@ -174,7 +174,7 @@ void MinusIntConverter::visit(Return* node)
 //     | '(' EXP MINUS EXP ')'
 //     | '(' EXP TIMES EXP ')'
 //     | '(' EXP DIVIDE EXP ')'
-void MinusIntConverter::visit(BinaryOp* node)
+void ConstantPropagater::visit(BinaryOp* node)
 {
     // 1. 判断参数非空
     if (node == nullptr) {
@@ -209,13 +209,38 @@ void MinusIntConverter::visit(BinaryOp* node)
     node->right->accept(*this);
     Exp* r = static_cast<Exp*>(newNode);
 
+    // TODO
+    // 5. 更新本层newNode (执行常量运算)
+    if (l->getASTKind() == ASTKind::IntExp && r->getASTKind() == ASTKind::IntExp) {
+        int val = 0;
+        int lval = static_cast<IntExp*>(l)->val;
+        int rval = static_cast<IntExp*>(r)->val;
+
+        if (node->op->op == "+")
+            val = lval + rval;
+        else if (node->op->op == "-")
+            val = lval - rval;
+        else if (node->op->op == "*")
+            val = lval * rval;
+        else if (node->op->op == "/")
+            val = lval / rval;
+        else {
+            cerr << "Error: Invalid operator found in the BinaryOp statement" << endl;
+            newNode = nullptr;
+            return;
+        }
+
+        newNode = new IntExp(node->getPos()->clone(), val);
+        return;
+    }
+
     // 5. 更新本层newNode
     newNode = new BinaryOp(node->getPos()->clone(), l, node->op->clone(), r);
 }
 
 // 表达式: 一元运算
 // EXP: '(' MINUS EXP ')'
-void MinusIntConverter::visit(UnaryOp* node)
+void ConstantPropagater::visit(UnaryOp* node)
 {
     // 1. 判断参数非空
     if (node == nullptr) {
@@ -240,18 +265,11 @@ void MinusIntConverter::visit(UnaryOp* node)
     node->exp->accept(*this);
     Exp* e = static_cast<Exp*>(newNode);
 
-    // 5. 更新本层newNode (执行运算)
-    if (node->op->op == "-" && e->getASTKind() == ASTKind::IntExp) {
-        int val = -(static_cast<IntExp*>(e)->val);
-        newNode = new IntExp(node->getPos()->clone(), val);
-        return;
-    }
-
     // 5. 更新本层newNode
     newNode = new UnaryOp(node->getPos()->clone(), node->op->clone(), e);
 }
 
-void MinusIntConverter::visit(Esc* node)
+void ConstantPropagater::visit(Esc* node)
 {
     // 1. 判断参数非空
     if (node == nullptr) {
@@ -279,17 +297,17 @@ void MinusIntConverter::visit(Esc* node)
     newNode = new Esc(node->getPos()->clone(), sl, e);
 }
 
-void MinusIntConverter::visit(IdExp* node)
+void ConstantPropagater::visit(IdExp* node)
 {
     newNode = (node == nullptr) ? nullptr : static_cast<IdExp*>(node->clone());
 }
 
-void MinusIntConverter::visit(OpExp* node)
+void ConstantPropagater::visit(OpExp* node)
 {
     newNode = (node == nullptr) ? nullptr : static_cast<OpExp*>(node->clone());
 }
 
-void MinusIntConverter::visit(IntExp* node)
+void ConstantPropagater::visit(IntExp* node)
 {
     newNode = (node == nullptr) ? nullptr : static_cast<IntExp*>(node->clone());
 }

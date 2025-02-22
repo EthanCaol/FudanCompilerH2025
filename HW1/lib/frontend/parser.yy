@@ -31,6 +31,7 @@
 %header
 %verbose
 
+// ASTParser成员变量
 %parse-param {ASTLexer &lexer}
 %parse-param {const bool debug}
 %parse-param {AST_YYSTYPE* result}
@@ -82,6 +83,7 @@ PROG: MAINMETHOD
     //$$ = result->root;
   }
   ;
+
 MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' STMLIST '}'
   {
 #ifdef DEBUG
@@ -90,6 +92,7 @@ MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' STMLIST '}'
     $$ = new MainMethod(p, $7) ;
   }
   ;
+
 STMLIST: // empty
   {
 #ifdef DEBUG
@@ -109,6 +112,7 @@ STMLIST: // empty
     $$ = v;
   }
   ;
+
 STM: ID '=' EXP ';'
   {
 #ifdef DEBUG
@@ -125,6 +129,7 @@ STM: ID '=' EXP ';'
     $$ = new Return(p, $2);
   }
   ;
+
 EXP: '(' EXP ADD EXP ')'
   {
 #ifdef DEBUG
@@ -202,6 +207,7 @@ EXP: '(' EXP ADD EXP ')'
     $$ = $1;
   }
   ;
+
 ID: IDENTIFIER
   {
 #ifdef DEBUG
@@ -211,25 +217,19 @@ ID: IDENTIFIER
   }
   ;
 
+
 %%
-/*
-void yyerror(char *s) {
-  fprintf(stderr, "%s\n",s);
-}
 
-int yywrap() {
-  return(1);
-}
-*/
 
-//%code 
 namespace fdmj 
 {
     template<typename RHS>
     inline void calcLocation(location_t &current, const RHS &rhs, const std::size_t n)
     {
-        current = location_t(YYRHSLOC(rhs, 1).sline, YYRHSLOC(rhs, 1).scolumn, 
-                                    YYRHSLOC(rhs, n).eline, YYRHSLOC(rhs, n).ecolumn);
+        current = location_t(YYRHSLOC(rhs, 1).sline, 
+                             YYRHSLOC(rhs, 1).scolumn, 
+                             YYRHSLOC(rhs, n).eline, 
+                             YYRHSLOC(rhs, n).ecolumn);
         p = new Pos(current.sline, current.scolumn, current.eline, current.ecolumn);
     }
     
@@ -238,25 +238,28 @@ namespace fdmj
         std::cerr << "Error at lines " << location << ": " << message << std::endl;
     }
 
-  Program* fdmjParser(ifstream &fp, const bool debug) {
-    fdmj:AST_YYSTYPE result; 
-    result.root = nullptr;
-    fdmj::ASTLexer lexer(fp, debug);
-    fdmj::ASTParser parser(lexer, debug, &result); //set up the parser
-    if (parser() ) { //call the parser
-      cout << "Error: parsing failed" << endl;
-      return nullptr;
-    }
-    if (debug) cout << "Parsing successful" << endl;
-    return result.root;
-  }
+    // 词法语法分析
+    Program* fdmjParser(ifstream &fp, const bool debug) {
+        fdmj:AST_YYSTYPE result; 
+        result.root = nullptr;
 
-  Program*  fdmjParser(const string &filename, const bool debug) {
-    std::ifstream fp(filename);
-    if (!fp) {
-      cout << "Error: cannot open file " << filename << endl;
-      return nullptr;
+        fdmj::ASTLexer lexer(fp, debug);
+        fdmj::ASTParser parser(lexer, debug, &result);
+        if (parser()) {
+            cout << "Error: parsing failed" << endl;
+            return nullptr;
+        }
+
+        if (debug) cout << "Parsing successful" << endl;
+        return result.root;
     }
-    return fdmjParser(fp, debug);
-  }
+
+    Program* fdmjParser(const string &filename, const bool debug) {
+        std::ifstream fp(filename);
+        if (!fp) {
+            cout << "Error: cannot open file " << filename << endl;
+            return nullptr;
+        }
+        return fdmjParser(fp, debug);
+    }
 }

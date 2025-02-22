@@ -7,7 +7,6 @@ int base;
 extern int yylex();
 extern void yyerror(char*);
 extern int  yywrap();
-
 %}
 
 %token <a> DIGIT
@@ -17,7 +16,7 @@ extern int  yywrap();
 %left '&'
 %left '+' '-'
 %left '*' '/' '%'
-%left UMINUS  /*supplies precedence for unary minus */
+%left UMINUS  /* supplies precedence for unary minus */
 
 %union {A_exp e; A_stm s; int a;}
 
@@ -27,17 +26,13 @@ extern int  yywrap();
 
 %start list
 
-%%                   /* beginning of rules section */
+%%
 
-list:                       /*empty */
+list:    /*empty */
          |
-        list stat '\n'
-        { printf("\n");}
+         list stat '\n' { printf("\n"); }
          |
-        list error '\n'
-         {
-           yyerrok;
-         }
+         list error '\n' { yyerrok; }
          ;
 stat:    expr
          {
@@ -105,10 +100,10 @@ number:  DIGIT
 void yyerror(s)
 char *s;
 {
-  fprintf(stderr, "%s\n",s);
+    fprintf(stderr, "%s\n",s);
 }
 
 int yywrap()
 {
-  return(1);
+    return(1);
 }

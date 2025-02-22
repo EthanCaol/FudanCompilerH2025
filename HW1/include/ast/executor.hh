@@ -1,22 +1,25 @@
-#ifndef _AST2XML_HH
-#define _AST2XML_HH
+#ifndef _EXECUTOR_H
+#define _EXECUTOR_H
 
 #include "ASTheader.hh"
 #include "FDMJAST.hh"
-#include "tinyxml2.hh"
+#include <unordered_map>
 
 using namespace std;
 using namespace fdmj;
-using namespace tinyxml2;
 
-XMLDocument* ast2xml(fdmj::Program* root, bool location_flag);
+int execute(Program* root);
 
-class AST2XML : public fdmj::ASTVisitor {
+class Executer : public ASTVisitor {
 public:
-    XMLDocument* doc; // XMLDocument to store the AST
-    XMLElement* el;   // temp to remember the results during the AST is recursively visited.
+    AST* newNode = nullptr;
+    Executer(AST* newNode)
+        : newNode(newNode)
+    {
+    }
 
-public:
+    unordered_map<string, int> varTable;
+
     void visit(Program* node) override;
     void visit(MainMethod* node) override;
     void visit(Assign* node) override;

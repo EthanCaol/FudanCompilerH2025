@@ -1,7 +1,6 @@
 # MacOS
 
 .DS_Store
-.vscode/
 build/
 #ignore all test files
 /**/test/*.*

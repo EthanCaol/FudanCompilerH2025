@@ -1,22 +1,22 @@
-#ifndef _AST2XML_HH
-#define _AST2XML_HH
+#ifndef _CONSTPROPAGATION_H
+#define _CONSTPROPAGATION_H
 
 #include "ASTheader.hh"
 #include "FDMJAST.hh"
-#include "tinyxml2.hh"
 
 using namespace std;
 using namespace fdmj;
-using namespace tinyxml2;
 
-XMLDocument* ast2xml(fdmj::Program* root, bool location_flag);
+Program* constantPropagate(Program* root);
 
-class AST2XML : public fdmj::ASTVisitor {
+class ConstantPropagater : public ASTVisitor {
 public:
-    XMLDocument* doc; // XMLDocument to store the AST
-    XMLElement* el;   // temp to remember the results during the AST is recursively visited.
+    AST* newNode = nullptr;
+    ConstantPropagater(AST* newNode)
+        : newNode(newNode)
+    {
+    }
 
-public:
     void visit(Program* node) override;
     void visit(MainMethod* node) override;
     void visit(Assign* node) override;
