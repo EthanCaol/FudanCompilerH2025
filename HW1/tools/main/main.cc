@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <filesystem>
 
 #include <unistd.h>
 
@@ -18,15 +19,18 @@ using namespace std;
 using namespace fdmj;
 using namespace tinyxml2;
 
-#define with_location_info false
-// false means no location info in the AST XML files
+// XML是否记录位置信息
+#define with_location_info true
 
 Program* prog();
 
 int main(int argc, const char* argv[])
 {
     // 切换到test目录
-    chdir("../../../test");
+    filesystem::path filePath(__FILE__);
+    filesystem::path directory = filePath.parent_path();
+    chdir(directory.c_str());
+    chdir("../../test");
 
     string file;
     file = "test4";

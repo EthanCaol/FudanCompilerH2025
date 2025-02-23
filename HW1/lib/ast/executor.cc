@@ -11,44 +11,11 @@ using namespace fdmj;
 #define StmList vector<Stm*>
 #define ExpList vector<Exp*>
 
-// 对外接口函数
-int execute(Program* root)
-{
-    if (root == nullptr)
-        return 0;
-    Executer v(nullptr);
-    root->accept(v);
-
-    AST* node = v.newNode;
-    if (node->getASTKind() != ASTKind::Program) {
-        cerr << "> execute: No Program" << endl;
-        return 0;
-    }
-
-    node = static_cast<Program*>(node)->main;
-    if (node->getASTKind() != ASTKind::MainMethod) {
-        cerr << "> execute: No MainMethod" << endl;
-        return 0;
-    }
-
-    StmList* sl = static_cast<MainMethod*>(node)->sl;
-    if (sl == nullptr) {
-        cerr << "> execute: No StmList" << endl;
-        return 0;
-    }
-
-    node = sl->back();
-    if (node->getASTKind() != ASTKind::Return) {
-        cerr << "> execute: No Return" << endl;
-        return 0;
-    }
-
-    return static_cast<Return*>(node)->val;
-}
-
 // 判断值 (IdExp, IntExp)
 static bool judgeValue(AST* e, unordered_map<string, int>& varTable)
 {
+    if (e == nullptr)
+        return false;
     if (e->getASTKind() == ASTKind::IdExp) {
         IdExp* id = static_cast<IdExp*>(e);
         return varTable.find(id->id) != varTable.end();
@@ -68,7 +35,62 @@ static int getValue(AST* e, unordered_map<string, int>& varTable)
         IntExp* ie = static_cast<IntExp*>(e);
         return ie->val;
     }
+    return 0;
 }
+
+// 打印位置信息
+static void printPos(AST* node)
+{
+    if (node == nullptr)
+        return;
+    Pos* pos = node->getPos();
+    if (pos == nullptr)
+        return;
+    cout << "> [" << pos->sline << ":" << pos->scolumn << "-" << pos->eline << ":" << pos->ecolumn << "]" << endl; 
+}
+
+// --------------------------------
+
+// 对外接口函数
+int execute(Program* root)
+{
+    if (root == nullptr)
+        return 0;
+    Executer v(nullptr);
+    root->accept(v);
+
+    AST* node = v.newNode;
+    if (node->getASTKind() != ASTKind::Program) {
+        cerr << "> execute: No Program" << endl;
+        printPos(node);
+        return 0;
+    }
+
+    node = static_cast<Program*>(node)->main;
+    if (node->getASTKind() != ASTKind::MainMethod) {
+        cerr << "> execute: No MainMethod" << endl;
+        printPos(node);
+        return 0;
+    }
+
+    StmList* sl = static_cast<MainMethod*>(node)->sl;
+    if (sl == nullptr) {
+        cerr << "> execute: No StmList" << endl;
+        printPos(node);
+        return 0;
+    }
+
+    node = sl->back();
+    if (node->getASTKind() != ASTKind::Return) {
+        cerr << "> execute: No Return" << endl;
+        printPos(node);
+        return 0;
+    }
+
+    return static_cast<Return*>(node)->val;
+}
+
+// --------------------------------
 
 // 1. 判断参数非空
 // 2. 判断子结点非空
@@ -117,6 +139,7 @@ void Executer::visit(Program* node)
     // 2. 判断子结点非空
     if (node->main == nullptr) {
         cerr << "> Program: No MainMethod" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -143,6 +166,7 @@ void Executer::visit(MainMethod* node)
     // 2. 判断子结点非空
     if (node->sl == nullptr) {
         cerr << "> MainMethod: No StmList" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -168,11 +192,13 @@ void Executer::visit(Assign* node)
     // 2. 判断子结点非空
     if (node->left == nullptr) {
         cerr << "> Assign: No left Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
     if (node->exp == nullptr) {
         cerr << "> Assign: No right Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -193,6 +219,7 @@ void Executer::visit(Assign* node)
         val = getValue(r, varTable);
     else {
         cerr << "> Assign: Invalid right value Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -203,6 +230,7 @@ void Executer::visit(Assign* node)
         varTable[id->id] = val;
     } else {
         cerr << "> Assign: Invalid left id Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -224,6 +252,7 @@ void Executer::visit(Return* node)
     // 2. 判断子结点非空
     if (node->exp == nullptr) {
         cerr << "> Return: No Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -237,6 +266,7 @@ void Executer::visit(Return* node)
         val = getValue(newNode, varTable);
     else {
         cerr << "> Return: Invalid value Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -261,16 +291,19 @@ void Executer::visit(BinaryOp* node)
     // 2. 判断子结点非空
     if (node->left == nullptr) {
         cerr << "> BinaryOp: No left Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
     if (node->op == nullptr) {
         cerr << "> BinaryOp: No OpExp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
     if (node->right == nullptr) {
         cerr << "> BinaryOp: No right Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -291,6 +324,7 @@ void Executer::visit(BinaryOp* node)
         lval = getValue(l, varTable);
     else {
         cerr << "> Binary: Invalid left value Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -298,6 +332,7 @@ void Executer::visit(BinaryOp* node)
         rval = getValue(r, varTable);
     else {
         cerr << "> Binary: Invalid right value Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -314,6 +349,7 @@ void Executer::visit(BinaryOp* node)
         val = lval / rval;
     else {
         cerr << "> Binary: Invalid OpExp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -336,11 +372,13 @@ void Executer::visit(UnaryOp* node)
     // 2. 判断子结点非空
     if (node->exp == nullptr) {
         cerr << "> UnaryOp: No Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
     if (node->op == nullptr) {
         cerr << "> UnaryOp: No OpExp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -354,6 +392,7 @@ void Executer::visit(UnaryOp* node)
         val = getValue(node->exp, varTable);
     else {
         cerr << "> UnaryOp: Invalid value Exp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -363,6 +402,7 @@ void Executer::visit(UnaryOp* node)
         newNode = new IntExp(node->getPos()->clone(), -val);
     else {
         cerr << "> UnaryOp: Invalid OpExp" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
@@ -382,6 +422,7 @@ void Executer::visit(Esc* node)
     // 2. 判断子结点非空
     if (node->sl == nullptr) {
         cerr << "> Esc: No StmList" << endl;
+        printPos(node);
         newNode = nullptr;
         return;
     }
