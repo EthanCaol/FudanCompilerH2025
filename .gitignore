@@ -1,13 +1,6 @@
-# MacOS
-
-.DS_Store
+.DS_Store/
 build/
-#ignore all test files
-/**/test/*.*
-#except for *.fmj source files
-!/**/test/*.fmj
-!/**/test/*.txt
-.vscode
+*.ast
 
 # Prerequisites
 *.d
