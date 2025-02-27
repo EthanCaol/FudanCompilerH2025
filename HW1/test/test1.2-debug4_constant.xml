@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Program bline="1" bpos="1" eline="4" epos="1">
+    <MainMethod bline="1" bpos="1" eline="4" epos="1">
+        <StmList>
+            <Assign bline="2" bpos="2" eline="2" epos="21">
+                <IdExp bline="2" bpos="2" eline="2" epos="2" id="x"/>
+                <IntExp bline="2" bpos="6" eline="2" epos="20" val="-7"/>
+            </Assign>
+            <Return bline="3" bpos="2" eline="3" epos="10">
+                <IdExp bline="3" bpos="9" eline="3" epos="9" id="x"/>
+            </Return>
+        </StmList>
+    </MainMethod>
+</Program>

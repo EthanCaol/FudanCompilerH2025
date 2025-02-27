@@ -20,7 +20,7 @@ using namespace fdmj;
 using namespace tinyxml2;
 
 // XML是否记录位置信息
-#define with_location_info true
+#define with_location_info false
 
 Program* prog();
 
@@ -33,7 +33,7 @@ int main(int argc, const char* argv[])
     chdir("../../test");
 
     string file;
-    file = "test4";
+    file = "test5";
 
     // const bool debug = argc > 1 && std::strcmp(argv[1], "--debug") == 0;
 

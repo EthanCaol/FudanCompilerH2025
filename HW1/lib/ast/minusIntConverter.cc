@@ -132,7 +132,7 @@ void MinusIntConverter::visit(Assign* node)
     // 3. 调用accept(visit)
     // 4. 记录下层newNode
     node->left->accept(*this);
-    Exp* l = static_cast<Exp*>(newNode);
+    IdExp* l = static_cast<IdExp*>(newNode);
 
     // 3. 调用accept(visit)
     // 4. 记录下层newNode

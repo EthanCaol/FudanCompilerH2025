@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Program bline="1" bpos="1" eline="4" epos="1">
+    <MainMethod bline="1" bpos="1" eline="4" epos="1">
+        <StmList>
+            <Assign bline="2" bpos="2" eline="2" epos="21">
+                <IdExp bline="2" bpos="2" eline="2" epos="2" id="x"/>
+                <BinaryOp bline="2" bpos="6" eline="2" epos="20">
+                    <IntExp bline="2" bpos="7" eline="2" epos="10" val="-1"/>
+                    <OpExp op="+" bline="2" bpos="11" eline="2" epos="11"/>
+                    <BinaryOp bline="2" bpos="12" eline="2" epos="19">
+                        <IntExp bline="2" bpos="13" eline="2" epos="16" val="-2"/>
+                        <OpExp op="*" bline="2" bpos="17" eline="2" epos="17"/>
+                        <IntExp bline="2" bpos="18" eline="2" epos="18" val="3"/>
+                    </BinaryOp>
+                </BinaryOp>
+            </Assign>
+            <Return bline="3" bpos="2" eline="3" epos="10">
+                <IdExp bline="3" bpos="9" eline="3" epos="9" id="x"/>
+            </Return>
+        </StmList>
+    </MainMethod>
+</Program>

@@ -57,11 +57,13 @@
 
 //terminals with no value 
 %token PUBLIC INT MAIN RETURN 
+
 //terminals with value
 %token<i> NONNEGATIVEINT
 %token<s> IDENTIFIER
 %token '(' ')' '[' ']' '{' '}' '=' ',' ';' '.' 
 %token ADD MINUS TIMES DIVIDE EQ NE LT LE GT GE AND OR
+
 //non-terminals, need type information only (not tokens)
 %type <program> PROG 
 %type <mainMethod> MAINMETHOD 
@@ -74,7 +76,9 @@
 %expect 0
 
 %%
-PROG: MAINMETHOD 
+// 程序
+// PROG: MAINMETHOD;
+PROG: MAINMETHOD
   { 
 #ifdef DEBUG
     cerr << "Program" << endl;
@@ -84,6 +88,8 @@ PROG: MAINMETHOD
   }
   ;
 
+// 主方法
+// MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' STMLIST '}';
 MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' STMLIST '}'
   {
 #ifdef DEBUG
@@ -113,6 +119,9 @@ STMLIST: // empty
   }
   ;
 
+// 语句
+// STM: ID '=' EXP ';'
+//    | RETURN EXP ';';
 STM: ID '=' EXP ';'
   {
 #ifdef DEBUG
@@ -130,6 +139,17 @@ STM: ID '=' EXP ';'
   }
   ;
 
+// 表达式
+// EXP: '(' EXP ADD EXP ')'
+//    | '(' EXP MINUS EXP ')'
+//    | '(' EXP TIMES EXP ')'
+//    | '(' EXP DIVIDE EXP ')'
+//    | NONNEGATIVEINT
+//    | '(' MINUS EXP ')'
+//    | '(' EXP ')'
+//    | '(' '{' STMLIST '}' EXP ')'
+//    | '(' EXP ')'
+//    | ID;
 EXP: '(' EXP ADD EXP ')'
   {
 #ifdef DEBUG
@@ -216,8 +236,6 @@ ID: IDENTIFIER
     $$ = new IdExp(p, $1);
   }
   ;
-
-
 %%
 
 
@@ -235,10 +253,10 @@ namespace fdmj
     
     void ASTParser::error(const location_t &location, const std::string &message)
     {
-        std::cerr << "Error at lines " << location << ": " << message << std::endl;
+        std::cerr << "ASTParser: Error at " << location << ": " << message << std::endl;
     }
 
-    // 词法语法分析
+    // 外部接口函数
     Program* fdmjParser(ifstream &fp, const bool debug) {
         fdmj:AST_YYSTYPE result; 
         result.root = nullptr;
@@ -254,6 +272,7 @@ namespace fdmj
         return result.root;
     }
 
+    // 外部接口函数
     Program* fdmjParser(const string &filename, const bool debug) {
         std::ifstream fp(filename);
         if (!fp) {

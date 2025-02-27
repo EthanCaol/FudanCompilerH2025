@@ -46,7 +46,7 @@ static void printPos(AST* node)
     Pos* pos = node->getPos();
     if (pos == nullptr)
         return;
-    cout << "> [" << pos->sline << ":" << pos->scolumn << "-" << pos->eline << ":" << pos->ecolumn << "]" << endl; 
+    cout << "> [" << pos->sline << ":" << pos->scolumn << "-" << pos->eline << ":" << pos->ecolumn << "]" << endl;
 }
 
 // --------------------------------
@@ -87,7 +87,7 @@ int execute(Program* root)
         return 0;
     }
 
-    return static_cast<Return*>(node)->val;
+    return static_cast<Return*>(node)->retVal;
 }
 
 // --------------------------------
@@ -95,7 +95,7 @@ int execute(Program* root)
 // 1. 判断参数非空
 // 2. 判断子结点非空
 // 3. 调用accept(visit)
-// 4. 执行操作
+// 4. 执行所需操作
 
 template <typename T>
 static vector<T*>* visitList(Executer& v, vector<T*>* tl)
@@ -261,9 +261,9 @@ void Executer::visit(Return* node)
     node->exp->accept(*this);
 
     // 4. 执行操作: 取出值
-    int val;
+    int retVal;
     if (judgeValue(newNode, varTable))
-        val = getValue(newNode, varTable);
+        retVal = getValue(newNode, varTable);
     else {
         cerr << "> Return: Invalid value Exp" << endl;
         printPos(node);
@@ -271,7 +271,7 @@ void Executer::visit(Return* node)
         return;
     }
 
-    newNode = new Return(node->getPos()->clone(), val);
+    newNode = new Return(node->getPos()->clone(), retVal);
 }
 
 // 表达式: 二元运算
@@ -345,9 +345,14 @@ void Executer::visit(BinaryOp* node)
         val = lval - rval;
     else if (node->op->op == "*")
         val = lval * rval;
-    else if (node->op->op == "/")
+    else if (node->op->op == "/") {
+        if (rval == 0) {
+            cerr << "> Binary: Division by zero" << endl;
+            newNode = nullptr;
+            return;
+        }
         val = lval / rval;
-    else {
+    } else {
         cerr << "> Binary: Invalid OpExp" << endl;
         printPos(node);
         newNode = nullptr;
@@ -388,8 +393,8 @@ void Executer::visit(UnaryOp* node)
 
     // 4. 执行操作: 一元运算
     int val = 0; // 取出值
-    if (judgeValue(node->exp, varTable))
-        val = getValue(node->exp, varTable);
+    if (judgeValue(newNode, varTable))
+        val = getValue(newNode, varTable);
     else {
         cerr << "> UnaryOp: Invalid value Exp" << endl;
         printPos(node);
@@ -434,7 +439,6 @@ void Executer::visit(Esc* node)
     node->exp->accept(*this);
 
     // 4. 执行操作: 直接返回下层newNode
-    ASTKind k = newNode->getASTKind();
 }
 
 void Executer::visit(IdExp* node) { newNode = (node == nullptr) ? nullptr : static_cast<IdExp*>(node->clone()); }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Program>
+    <MainMethod>
+        <StmList>
+            <Return>
+                <BinaryOp>
+                    <IntExp val="2147483647"/>
+                    <OpExp op="+"/>
+                    <IntExp val="1"/>
+                </BinaryOp>
+            </Return>
+        </StmList>
+    </MainMethod>
+</Program>

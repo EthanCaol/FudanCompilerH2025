@@ -132,7 +132,7 @@ void ConstantPropagater::visit(Assign* node)
     // 3. 调用accept(visit)
     // 4. 记录下层newNode
     node->left->accept(*this);
-    Exp* l = static_cast<Exp*>(newNode);
+    IdExp* l = static_cast<IdExp*>(newNode);
 
     // 3. 调用accept(visit)
     // 4. 记录下层newNode
@@ -209,7 +209,6 @@ void ConstantPropagater::visit(BinaryOp* node)
     node->right->accept(*this);
     Exp* r = static_cast<Exp*>(newNode);
 
-    // TODO
     // 5. 更新本层newNode (执行常量运算)
     if (l->getASTKind() == ASTKind::IntExp && r->getASTKind() == ASTKind::IntExp) {
         int val = 0;
@@ -222,9 +221,14 @@ void ConstantPropagater::visit(BinaryOp* node)
             val = lval - rval;
         else if (node->op->op == "*")
             val = lval * rval;
-        else if (node->op->op == "/")
+        else if (node->op->op == "/") {
+            if (rval == 0) {
+                cerr << "BinaryOp: Division by zero" << endl;
+                newNode = nullptr;
+                return;
+            }
             val = lval / rval;
-        else {
+        } else {
             cerr << "Error: Invalid operator found in the BinaryOp statement" << endl;
             newNode = nullptr;
             return;
@@ -264,6 +268,13 @@ void ConstantPropagater::visit(UnaryOp* node)
     // 4. 记录下层newNode
     node->exp->accept(*this);
     Exp* e = static_cast<Exp*>(newNode);
+
+    // 5. 更新本层newNode (执行运算)
+    if (node->op->op == "-" && e->getASTKind() == ASTKind::IntExp) {
+        int val = -(static_cast<IntExp*>(e)->val);
+        newNode = new IntExp(node->getPos()->clone(), val);
+        return;
+    }
 
     // 5. 更新本层newNode
     newNode = new UnaryOp(node->getPos()->clone(), node->op->clone(), e);

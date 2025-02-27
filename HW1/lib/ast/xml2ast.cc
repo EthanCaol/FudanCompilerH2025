@@ -239,7 +239,7 @@ Assign* create_assign(XMLElement* element)
 #ifdef DEBUG
     cout << "Creating Assign" << endl;
 #endif
-    Exp* exp1 = nullptr;
+    IdExp* exp1 = nullptr;
     Exp* exp2 = nullptr;
     if (string(element->Name()) != "Assign") {
         cerr << "Error: input Element is not Assign" << endl;
@@ -252,7 +252,7 @@ Assign* create_assign(XMLElement* element)
             cerr << "Error: Assign: Unknown element in Assign" << endl;
         else {
             if (exp1 == nullptr)
-                exp1 = e;
+                exp1 = static_cast<IdExp*>(e);
             else if (exp2 == nullptr)
                 exp2 = e;
             else

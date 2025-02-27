@@ -18,12 +18,13 @@ using namespace std;
 using namespace fdmj;
 
 namespace fdmj {
-// These are the types of values (yylval) that a token can have
-// This can change if more types are added
+// %option yyclass="ASTLexer"
+// token: yylval的类型
 class AST_YYSTYPE {
 public:
     int i;
     string s;
+
     IntExp* intExp;
     IdExp* idExp;
     OpExp* opExp;
@@ -37,28 +38,23 @@ public:
 };
 
 class ASTLexer : public yy_ast_FlexLexer {
-    // initialize the line and column numbers.
-    // Each time a newline is encountered, the line number should increment and
-    // column reset
+    // 初始化行号和列号
+    // 每次遇到换行符时, 行号增加, 列号重置
     std::size_t currentLine = 1;
     std::size_t currentColumn = 1;
 
-    // These are the values that the lexer will return
+    // lexer返回的token信息
     AST_YYSTYPE* yylval = nullptr;
     location_t* yylloc = nullptr;
 
-    // This is the function that will copy the value of the token to yylval
-    // The lexer will call this function to copy the value of the token to yylval
-    // We will use it when a token is matched and need to return a value in
-    // yylval.
+    // 将token的值复制到yylval
+    // <INITIAL>{non_negative_integer} { copyValue(std::atoi(yytext)); return Token::NONNEGATIVEINT; }
+    // <INITIAL>{identifier}           { copyValue(yytext); return Token::IDENTIFIER; }
     void copyValue(const string s) { yylval->s = s; }
     void copyValue(const int n) { yylval->i = n; }
-    // void copyValue(const ASSTNode *node) { yylval->node = nullptr;
-    // exit(EXIT_FAILURE);} //the lexer shouldnt see node!
 
-    // this is the function that will copy the location of the token to yylloc
-    // this is needed in order to keep track of the location of the token
-    // we will use it for YY_USER_ACTION, i.e., whenever a pattern in matched
+    // 将token的位置复制到yylloc (每次发生匹配时执行)
+    // #define YY_USER_ACTION copyLocation();
     void copyLocation()
     {
         *yylloc = location_t(currentLine, currentColumn, currentLine, yyleng + currentColumn - 1);
@@ -66,7 +62,6 @@ class ASTLexer : public yy_ast_FlexLexer {
     }
 
 public:
-    // The API to this lexer
     ASTLexer(std::istream& in, const bool debug)
         : yy_ast_FlexLexer(&in)
     {

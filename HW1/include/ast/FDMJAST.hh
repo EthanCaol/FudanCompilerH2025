@@ -46,7 +46,7 @@ public:
 
 // 语句
 // STM: ID '=' EXP ';'
-//     | RETURN EXP ';';
+//    | RETURN EXP ';';
 class Stm : public AST {
 public:
     Stm(Pos* pos)
@@ -57,12 +57,12 @@ public:
 };
 
 // 语句: 赋值
-// STM: EXP '=' EXP ';'
+// STM: ID '=' EXP ';'
 class Assign : public Stm {
 public:
-    Exp* left = nullptr;
+    IdExp* left = nullptr;
     Exp* exp = nullptr;
-    Assign(Pos* pos, Exp* left, Exp* exp)
+    Assign(Pos* pos, IdExp* left, Exp* exp)
         : Stm(pos)
         , left(left)
         , exp(exp)
@@ -84,10 +84,10 @@ public:
     {
     }
 
-    int val = 0;
+    int retVal = 0;
     Return(Pos* pos, int val)
         : Stm(pos)
-        , val(val)
+        , retVal(val)
     {
     }
 
@@ -100,14 +100,14 @@ public:
 
 // 表达式
 // EXP: '(' EXP ADD EXP ')'
-//     | '(' EXP MINUS EXP ')'
-//     | '(' EXP TIMES EXP ')'
-//     | '(' EXP DIVIDE EXP ')'
-//     | '(' MINUS EXP ')'
-//     | '(' '{' STMLIST '}' EXP ')'
-//     | '(' EXP ')'
-//     | ID;
-//     | NONNEGATIVEINT
+//    | '(' EXP MINUS EXP ')'
+//    | '(' EXP TIMES EXP ')'
+//    | '(' EXP DIVIDE EXP ')'
+//    | '(' MINUS EXP ')'
+//    | '(' '{' STMLIST '}' EXP ')'
+//    | '(' EXP ')'
+//    | ID;
+//    | NONNEGATIVEINT
 class Exp : public AST {
 public:
     Exp(Pos* pos)
@@ -119,9 +119,9 @@ public:
 
 // 表达式: 二元运算
 // EXP: '(' EXP ADD EXP ')'
-//     | '(' EXP MINUS EXP ')'
-//     | '(' EXP TIMES EXP ')'
-//     | '(' EXP DIVIDE EXP ')'
+//    | '(' EXP MINUS EXP ')'
+//    | '(' EXP TIMES EXP ')'
+//    | '(' EXP DIVIDE EXP ')'
 class BinaryOp : public Exp {
 public:
     Exp* left = nullptr;
