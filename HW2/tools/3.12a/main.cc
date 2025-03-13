@@ -1,37 +1,143 @@
-#include <fstream>
 #include <iostream>
-#include <sstream>
 #include <string>
+#include <stack>
+#include <map>
 
-int parse_file(const std::string &filename) {
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    std::cerr << "Could not open the file!" << std::endl;
-    return -1;
-  }
+using namespace std;
 
-  std::string word;
-  int wordCount = 0;
-  while (file >> word) {
-    std::cout << word << " ";
-    ++wordCount;
-  }
-  std::cout << std::endl;
+// 产生式
+const map<int, pair<string, string>> prods = {
+    { 1, { "S", "E" } },
+    { 2, { "E", "i" } },
+    { 3, { "E", "i(E)" } },
+    { 4, { "E", "E+i" } },
+};
 
-  file.close();
-  return wordCount;
-}
+// 分析表
+const map<pair<int, char>, string> table = {
 
-int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
-    return 1;
-  }
+    // 状态0
+    // S -> ·E
+    // E -> ·i
+    // E -> ·i(E)
+    // E -> ·E+i
+    { { 0, 'i' }, "s3" },
+    { { 0, 'E' }, "1" },
+    { { 0, 'S' }, "2" },
 
-  std::string filename = argv[1];
-  int result = parse_file(filename);
+    // 状态1
+    // S -> E·
+    // E -> E·+i
+    { { 1, '+' }, "s4" },
 
-  std::cout << "The result is: " << result << std::endl;
+    { { 1, '$' }, "r1" },
+    { { 1, 'i' }, "r1" },
+    { { 1, '(' }, "r1" },
+    { { 1, ')' }, "r1" },
 
-  return 0;
+    // 状态2
+    // S' -> S·
+    { { 2, '$' }, "$" },
+
+    // 状态3
+    // E -> i·
+    // E -> i·(E)
+    { { 3, '(' }, "s5" },
+
+    { { 3, ')' }, "r2" },
+    { { 3, '+' }, "r2" },
+    { { 3, 'i' }, "r2" },
+    { { 3, '$' }, "r2" },
+
+    // 状态4
+    // E -> E+·i
+    { { 4, 'i' }, "s6" },
+
+    // 状态5
+    // E -> i(·E)
+    // E -> ·i
+    // E -> ·i(E)
+    // E -> ·E+i
+    { { 5, 'i' }, "s3" },
+    { { 5, 'E' }, "7" },
+
+    // 状态6
+    // E -> E+i·
+    { { 6, '(' }, "r4" },
+    { { 6, ')' }, "r4" },
+    { { 6, '+' }, "r4" },
+    { { 6, 'i' }, "r4" },
+    { { 6, '$' }, "r4" },
+
+    // 状态7
+    // E -> i(E·)
+    // E -> E·+i
+    { { 7, ')' }, "s8" },
+    { { 7, '+' }, "s4" },
+
+    // 状态8
+    // E -> i(E)·
+    { { 8, '(' }, "r3" },
+    { { 8, ')' }, "r3" },
+    { { 8, 'i' }, "r3" },
+    { { 8, '+' }, "r3" },
+    { { 8, '$' }, "r3" },
+};
+
+string action;
+pair<string, string> prod;
+int state, curState, newState;
+
+int main()
+{
+    string str;
+    cin >> str;
+    // 将字符串中的id替换成i
+    for (int i = 0; i < str.length(); i++)
+        if (str[i] == 'i' && str[i + 1] == 'd') {
+            str[i] = 'i';
+            str.erase(i + 1, 1);
+        }
+    str += "$";
+
+    // <字符, 状态号> 解析栈
+    stack<pair<char, int>> Stack;
+    Stack.push({ '*', 0 });
+
+    try {
+        for (char c : str) {
+        PARSE:
+            // 获取当前状态 以及对应动作
+            state = Stack.top().second;
+            action = table.at({ state, c });
+
+            switch (action[0]) {
+                case 's': // 移入字符与新状态
+                    Stack.push({ c, stoi(action.substr(1)) });
+                    continue;
+
+                case 'r': // 执行规约
+                    prod = prods.at(stoi(action.substr(1)));
+
+                    // 弹出栈顶处的产生式右侧元素
+                    for (int i = 0; i < prod.second.length(); i++)
+                        Stack.pop();
+
+                    // 压入规约后的新元素, 并更新状态
+                    curState = Stack.top().second;
+                    newState = stoi(table.at({ curState, prod.first[0] }));
+                    Stack.push({ prod.first[0], newState });
+
+                    // 重新解析
+                    goto PARSE;
+
+                case '$':
+                    cout << "accept\n";
+                    exit(0);
+            }
+        }
+    } catch (...) {
+        cout << "reject\n";
+        exit(0);
+    }
 }
