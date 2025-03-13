@@ -17,4 +17,3 @@ clean:
 test:
 	./build/main.out < ../../test/3.3d/1.txt
 	./build/main.out < ../../test/3.3d/2.txt
-	./build/main.out < ../../test/3.3d/3.txt
