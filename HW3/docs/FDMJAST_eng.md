@@ -2,19 +2,19 @@ Here's the documentation for the classes in the FDMJAST.hh file:
 
 ### Program Structure Classes
 
-**Program Class**
+Program Class
 - Represents the entire program
 - Contains:
   - MainMethod: The main method of the program
   - ClassDecl: List of class declarations
 
-**MainMethod Class**
+MainMethod Class
 - Represents the main method of the program
 - Contains:
   - VarDecl: List of variable declarations
   - Stm: List of statements
 
-**ClassDecl Class**
+ClassDecl Class
 - Represents a class declaration
 - Contains:
   - IdExp: Class identifier
@@ -24,21 +24,21 @@ Here's the documentation for the classes in the FDMJAST.hh file:
 
 ### Type and Declaration Classes
 
-**Type Class**
+Type Class
 - Represents type information
 - Contains:
   - TypeKind: Type classification (INT, CLASS, ARRAY)
   - IdExp: Class identifier (for CLASS type)
   - IntExp: Array arity (for ARRAY type)
 
-**VarDecl Class**
+VarDecl Class
 - Represents variable declarations
 - Contains:
   - Type: Variable type
   - IdExp: Variable identifier
   - Initialization value (IntExp or array of IntExp)
 
-**MethodDecl Class**
+MethodDecl Class
 - Represents method declarations
 - Contains:
   - Type: Return type
@@ -47,7 +47,7 @@ Here's the documentation for the classes in the FDMJAST.hh file:
   - VarDecl: List of local variables
   - Stm: List of statements
 
-**Formal Class**
+Formal Class
 - Represents formal parameters in method declarations
 - Contains:
   - Type: Parameter type
@@ -55,57 +55,57 @@ Here's the documentation for the classes in the FDMJAST.hh file:
 
 ### Statement Classes
 
-**Stm (Base Class)**
+Stm (Base Class)
 - Base class for all statement types
 
-**Control Flow Statements:**
-- **If:** If-else statement
-- **While:** While loop statement
-- **Nested:** Block of statements
-- **Continue:** Continue statement
-- **Break:** Break statement
-- **Return:** Return statement
+Control Flow Statements:
+- If: If-else statement
+- While: While loop statement
+- Nested: Block of statements
+- Continue: Continue statement
+- Break: Break statement
+- Return: Return statement
 
-**Assignment and Call Statements:**
-- **Assign:** Assignment statement
-- **CallStm:** Method call statement
+Assignment and Call Statements:
+- Assign: Assignment statement
+- CallStm: Method call statement
 
-**I/O Statements:**
-- **PutInt:** Print integer statement
-- **PutCh:** Print character statement
-- **PutArray:** Print array statement
-- **GetInt:** Read integer statement
-- **GetCh:** Read character statement
-- **GetArray:** Read array statement
+I/O Statements:
+- PutInt: Print integer statement
+- PutCh: Print character statement
+- PutArray: Print array statement
+- GetInt: Read integer statement
+- GetCh: Read character statement
+- GetArray: Read array statement
 
-**Timing Statements:**
-- **Starttime:** Start timing statement
-- **Stoptime:** Stop timing statement
+Timing Statements:
+- Starttime: Start timing statement
+- Stoptime: Stop timing statement
 
 ### Expression Classes
 
-**Exp (Base Class)**
+Exp (Base Class)
 - Base class for all expression types
 
-**Operators:**
-- **BinaryOp:** Binary operation expression
-- **UnaryOp:** Unary operation expression
-- **OpExp:** Operator representation
+Operators:
+- BinaryOp: Binary operation expression
+- UnaryOp: Unary operation expression
+- OpExp: Operator representation
 
-**Access Expressions:**
-- **ArrayExp:** Array access expression
-- **ClassVar:** Class variable access expression
-- **CallExp:** Method call expression
-- **Length:** Array length expression
+Access Expressions:
+- ArrayExp: Array access expression
+- ClassVar: Class variable access expression
+- CallExp: Method call expression
+- Length: Array length expression
 
-**Literal Expressions:**
-- **BoolExp:** Boolean literal
-- **IntExp:** Integer literal
-- **IdExp:** Identifier expression
+Literal Expressions:
+- BoolExp: Boolean literal
+- IntExp: Integer literal
+- IdExp: Identifier expression
 
-**Special Expressions:**
-- **This:** 'this' reference
-- **Esc:** Expression with statement block
+Special Expressions:
+- This: 'this' reference
+- Esc: Expression with statement block
 
 ### Common Features
 All classes:
