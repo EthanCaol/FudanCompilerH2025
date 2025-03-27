@@ -504,7 +504,7 @@ EXP: '(' EXP ')' { $$ = $2; }
         $$ = new Esc(pos, stmList, exp);
     }
     |
-    ID { $$ = $1 }
+    ID { $$ = $1; }
     |
     NUM { $$ = new IntExp(pos, $1); }
     |
@@ -521,98 +521,98 @@ EXP: '(' EXP ')' { $$ = $2; }
     |
     EXP ADD EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "+");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP MINUS EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "-");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP TIMES EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "*");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP DIVIDE EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "/");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP AND EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "&&");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP OR EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "||");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP EQ EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "==");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP NE EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "!=");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP LE EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "<=");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP LT EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, "<");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP GE EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, ">=");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     EXP GT EXP
     {
-        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        Pos* opPos = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
         OpExp* op = new OpExp(opPos, ">");
         $$ = new BinaryOp(pos, $1, op, $3);
     }
     |
     MINUS EXP %prec UMINUS
     {
-        Pos* opPos = Pos(@1.sline, @1.scolumn, @1.eline, @1.ecolumn);
+        Pos* opPos = new Pos(@1.sline, @1.scolumn, @1.eline, @1.ecolumn);
         OpExp* op = new OpExp(opPos, "-");
         $$ = new UnaryOp(pos, op, $2);
     }
     |
     NOT EXP
     {
-        Pos* opPos = Pos(@1.sline, @1.scolumn, @1.eline, @1.ecolumn);
+        Pos* opPos = new Pos(@1.sline, @1.scolumn, @1.eline, @1.ecolumn);
         OpExp* op = new OpExp(opPos, "!");
         $$ = new UnaryOp(pos, op, $2);
     }
