@@ -93,14 +93,19 @@
 %token '(' ')' '[' ']' '{' '}' '=' ',' ';' '.'  // 其他符号
 
 // 优先级从低到高
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
+
+
 %left OR
 %left AND
 %right NOT
 %nonassoc EQ NE LE LT GE GT
 %left ADD MINUS
 %left TIMES DIVIDE
-%nonassoc '[' ']'
 %right UMINUS
+%nonassoc '.'
+%nonassoc '[' ']'
 
 %token<i> NUM
 %token<s> NAME
@@ -142,103 +147,73 @@
 ID: NAME { $$ = new IdExp(pos, $1); }
     ;
 
-
-
-// 常量: 整数 | 负整数
+// 数组初始化-常量: 整数 | 负整数
 // Const: NUM | '-' NUM
 CONST: NUM { $$ = new IntExp(pos, $1); }
     |
     MINUS NUM { $$ = new IntExp(pos, -$2); }
     ;
 
-// 常量列表: ε | 常量 常量余表
-// ConstList: ε | Const ConstRest
+// 数组初始化-常量列表
 CONSTLIST: // empty
-    { $$ = new IntExpList(); }
-    |
-    CONST CONSTREST
+    { $$= new IntExpList(); }
+    | CONSTREST ',' CONST
+    { $1->push_back($3); $$ = $1; }
+    | CONST
     {
-        IntExpList* constList = $2;
+        IntExpList* constList = new IntExpList();
         constList->push_back($1);
-        rotate(constList->begin(), constList->end() - 1, constList->end());
         $$ = constList;
     }
     ;
 
-// 常量余表: ε | ',' 常量 常量余表
-// ConstRest: ε | ',' Const ConstRest
-CONSTREST: // empty
-    { $$ = new IntExpList(); }
-    |
-    ',' CONST CONSTREST
+// 数组初始化-常量列表余表
+CONSTREST: CONSTREST ',' CONST
+    { $1->push_back($3); $$ = $1; }
+    | CONST
     {
-        IntExpList* constList = $3;
-        constList->push_back($2);
-        rotate(constList->begin(), constList->end() - 1, constList->end());
+        IntExpList* constList = new IntExpList();
+        constList->push_back($1);
         $$ = constList;
     }
     ;
 
-    
 
 
 // 程序: 主方法 类声明列表
 // PROG: MAINMETHOD CLASSDECLLIST
 PROG: MAINMETHOD CLASSDECLLIST
-    {
-        MainMethod* mainMethod = $1;
-        ClassDeclList* classDeclList = $2;
-        result->root = new Program(pos, mainMethod, classDeclList);
-    }
+    { result->root = new Program(pos, $1, $2); }
     ;
+
 
 // 主方法: public int main() { 变量声明列表 语句列表 }
 // MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' VARDECLLIST STMLIST '}';
 MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' VARDECLLIST STMLIST '}'
-    {
-        VarDeclList* varDeclList = $7;
-        vector<Stm*> *stmList = $8;
-        $$ = new MainMethod(pos, varDeclList, stmList);
-    }
+    { $$ = new MainMethod(pos, $7, $8); }
     ;
 
 
 
 
 
-// 类声明列表: ε | 类声明 类声明列表
-// CLASSDECLLIST: ε | CLASSDECL CLASSDECLLIST
+// 类声明列表
 CLASSDECLLIST: // empty
     { $$ = new ClassDeclList(); }
     |
-    CLASSDECL CLASSDECLLIST
-    {
-        ClassDeclList* classDeclList = $2;
-        classDeclList->push_back($1);
-        rotate(classDeclList->begin(), classDeclList->end() - 1, classDeclList->end());
-        $$ = classDeclList;
-    }
+    CLASSDECLLIST CLASSDECL
+    { $1->push_back($2); $$ = $1; }
     ;
+
 
 // 类声明: 类名 [基类名] { 变量声明列表 方法声明列表 }
 // CLASSDECL: PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}'
 //          | PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
 CLASSDECL: PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}'
-    {
-        IdExp* id = $3;
-        vector<VarDecl*> *varDeclList = $5;
-        vector<MethodDecl*> *methodDeclList = $6;
-        $$ = new ClassDecl(pos, id, varDeclList, methodDeclList);
-    }
+    { $$ = new ClassDecl(pos, $3, $5, $6); }
     |
     PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
-    {
-        IdExp* id = $3;
-        IdExp* eid = $5;
-        vector<VarDecl*> *varDeclList = $7;
-        vector<MethodDecl*> *methodDeclList = $8;
-        $$ = new ClassDecl(pos, id, eid, varDeclList, methodDeclList);
-    }
+    { $$ = new ClassDecl(pos, $3, $5, $7, $8); }
     ;
 
 
@@ -248,9 +223,7 @@ CLASSDECL: PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}'
 // 类型:  整型 | 整型数组 | 类
 // TYPE: INT | INT '[' ']' | CLASS ID
 TYPE: INT
-    {
-        $$ = new Type(pos);
-    }
+    { $$ = new Type(pos); }
     |
     INT '[' ']'
     {
@@ -259,28 +232,19 @@ TYPE: INT
     }
     |
     CLASS ID
-    {
-        IdExp* cid = $2;
-        $$ = new Type(pos, cid);
-    }
+    { $$ = new Type(pos, $2); }
     ;
 
 
 
 
 
-// 变量声明列表: ε | 变量声明 变量声明列表
-// VARDECLLIST: ε | VARDECL VARDECLLIST
+// 变量声明列表
 VARDECLLIST: // empty
     { $$ = new VarDeclList(); }
     |
-    VARDECL VARDECLLIST
-    {
-        VarDeclList* varDeclList = $2;
-        varDeclList->push_back($1);
-        rotate(varDeclList->begin(), varDeclList->end() - 1, varDeclList->end());
-        $$ = varDeclList;
-    }
+    VARDECLLIST VARDECL
+    { $1->push_back($2); $$ = $1; }
     ;
 
 // 变量声明
@@ -335,7 +299,7 @@ VARDECL: CLASS ID ID ';'
         IdExp* id = $4;
         IntExpList* init_array = $7;
         IntExp* arity = new IntExp(pos, 0);
-        Type* type = new Type(pos, arity);          // 整型数组
+        Type* type = new Type(pos, arity);           // 整型数组
         $$ = new VarDecl(pos, type, id, init_array); // 整型数组初始化
     }
     |
@@ -353,93 +317,46 @@ VARDECL: CLASS ID ID ';'
 
 
 
-// 方法声明列表: ε | 方法声明 方法声明列表
-// METHODDECLLIST: ε | METHODDECL METHODDECLLIST
+// 方法声明列表
 METHODDECLLIST: // empty
     { $$ = new MethodDeclList(); }
     |
-    METHODDECL METHODDECLLIST
-    {
-        MethodDeclList* methodDeclList = $2;
-        methodDeclList->push_back($1);
-        rotate(methodDeclList->begin(), methodDeclList->end() - 1, methodDeclList->end());
-        $$ = methodDeclList;
-    }
+    METHODDECLLIST METHODDECL
+    { $1->push_back($2); $$ = $1; }
     ;
 
 // 方法声明: 返回类型 方法名(形参列表) { 变量声明列表 语句列表 }
 // METHODDECL: PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
-//           | PUBLIC TYPE ID '(' ')' '{' VARDECLLIST STMLIST '}'
-//           | PUBLIC TYPE ID '(' FORMALLIST ')' '{' STMLIST '}'
-//           | PUBLIC TYPE ID '(' ')' '{' STMLIST '}'
 METHODDECL: PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
-    {
-        Type* type = $2;
-        IdExp* id = $3;
-        vector<Formal*>* formalList = $5;
-        vector<VarDecl*>* varDeclList = $8;
-        vector<Stm*>* stmList = $9;
-        $$ = new MethodDecl(pos, type, id, formalList, varDeclList, stmList);
-    }
-    |
-    PUBLIC TYPE ID '(' ')' '{' VARDECLLIST STMLIST '}'
-    {
-        Type* type = $2;
-        IdExp* id = $3;
-        vector<VarDecl*>* varDeclList = $7;
-        vector<Stm*>* stmList = $8;
-        $$ = new MethodDecl(pos, type, id, varDeclList, stmList);
-    }
-    |
-    PUBLIC TYPE ID '(' FORMALLIST ')' '{' STMLIST '}'
-    {
-        Type* type = $2;
-        IdExp* id = $3;
-        vector<Formal*>* formalList = $5;
-        vector<Stm*>* stmList = $8;
-        $$ = new MethodDecl(pos, type, id, formalList, stmList);
-    }
-    |
-    PUBLIC TYPE ID '(' ')' '{' STMLIST '}'
-    {
-        Type* type = $2;
-        IdExp* id = $3;
-        vector<Stm*>* stmList = $7;
-        $$ = new MethodDecl(pos, type, id, stmList);
-    }
+    { $$ = new MethodDecl(pos, $2, $3, $5, $8, $9); }
     ;
 
 
 
 
 // 方法形参列表
-// FORMALLIST: ε | TYPE ID FORMALREST
 FORMALLIST: // empty
     { $$ = new vector<Formal*>(); }
     |
-    TYPE ID FORMALREST
+    FORMALREST ',' TYPE ID 
+    { $1->push_back(new Formal(pos, $2, $3)); $$ = $1; }
+    |
+    TYPE ID
     {
-        Type* type = $1;
-        IdExp* id = $2;
-        vector<Formal*>* formalList = $3;
-        formalList->push_back(new Formal(pos, type, id));
-        rotate(formalList->begin(), formalList->end() - 1, formalList->end());
+        vector<Formal*>* formalList = new vector<Formal*>();
+        formalList->push_back(new Formal(pos, $1, $2));
         $$ = formalList;
     }
     ;
 
 // 方法形参余表
-// FORMALREST: ε | ',' TYPE ID FORMALREST
-FORMALREST: // empty
-    { $$ = new vector<Formal*>(); }
+FORMALREST: FORMALREST ',' TYPE ID 
+    { $1->push_back(new Formal(pos, $3, $4)); $$ = $1; }
     |
-    ',' TYPE ID FORMALREST
+    TYPE ID
     {
-        Type* type = $2;
-        IdExp* id = $3;
-        vector<Formal*>* formalList = $4;
-        formalList->push_back(new Formal(pos, type, id));
-        rotate(formalList->begin(), formalList->end() - 1, formalList->end());
+        vector<Formal*>* formalList = new vector<Formal*>();
+        formalList->push_back(new Formal(pos, $1, $2));
         $$ = formalList;
     }
     ;
@@ -450,19 +367,11 @@ FORMALREST: // empty
 
 
 // 语句列表
-// STMLIST: ε | STM STMLIST
 STMLIST: // empty
     { $$ = new vector<Stm*>(); }
     |
-    STM STMLIST
-    {
-        Stm* stm = $1;
-        vector<Stm*> *stmList = $2;
-        stmList->push_back(stm);
-        rotate(stmList->begin(), stmList->end() - 1, stmList->end());
-        $$ = stmList;
-    }
-    ;
+    STMLIST STM
+    { $1->push_back($2); $$ = $1; }
 
 // 语句
 // STM: '{' STMLIST '}'
@@ -472,7 +381,6 @@ STMLIST: // empty
 //      | WHILE '(' EXP ')' ';'
 //      | EXP '=' EXP ';'
 //      | EXP '.' ID '(' EXPLIST ')' ';'
-//      | EXP '.' ID '(' ')' ';'
 //      | CONTINUE ';'
 //      | BREAK ';'
 //      | RETURN EXP ';'
@@ -495,7 +403,7 @@ STM: '{' STMLIST '}'
         $$ = new If(pos, exp, stm1, stm2);
     }
     |
-    IF '(' EXP ')' STM
+    IF '(' EXP ')' STM %prec LOWER_THAN_ELSE
     {
         Exp* exp = $3;
         Stm* stm1 = $5;
@@ -528,13 +436,6 @@ STM: '{' STMLIST '}'
         IdExp* method = $3;
         vector<Exp*>* param = $5;
         $$ = new CallStm(pos, obj, method, param);
-    }
-    |
-    EXP '.' ID '(' ')' ';'
-    {
-        Exp* obj = $1;
-        IdExp* method = $3;
-        $$ = new CallStm(pos, obj, method);
     }
     |
     CONTINUE ';' { $$ = new Continue(pos); }
@@ -579,25 +480,25 @@ STM: '{' STMLIST '}'
 EXPLIST: // empty
     { $$ = new ExpList(); }
     |
-    EXP EXPREST
+    EXPREST ',' EXP 
+    { $1->push_back($3); $$ = $1; }
+    |
+    EXP
     {
-        ExpList* expList = $2;
+        ExpList* expList = new ExpList();
         expList->push_back($1);
-        rotate(expList->begin(), expList->end() - 1, expList->end());
         $$ = expList;
     }
     ;
 
-// 表达式余表: ε | ',' 表达式 表达式余表
-// EXPREST: ε | ',' EXP EXPREST
-EXPREST: // empty
-    { $$ = new ExpList(); }
+// 表达式余表
+EXPREST: EXPREST ',' EXP
+    { $1->push_back($3); $$ = $1; }
     |
-    ',' EXP EXPREST
+    EXP
     {
-        ExpList* expList = $3;
-        expList->push_back($2);
-        rotate(expList->begin(), expList->end() - 1, expList->end());
+        ExpList* expList = new ExpList();
+        expList->push_back($1);
         $$ = expList;
     }
     ;
@@ -614,14 +515,12 @@ EXPREST: // empty
 //      | [-!] EXP
 //      | THIS
 //      | EXP '.' ID '(' EXPLIST ')'
-//      | EXP '.' ID '(' ')'
 //      | EXP '.' ID
 //      | GETINT '(' ')'
 //      | GETCH '(' ')'
 //      | GETARRAY '(' EXP ')'
 //      | LENGTH '(' EXP ')'
-EXP: '(' EXP ')'
-    { $$ = $2; }
+EXP: '(' EXP ')' { $$ = $2; }
     |
     '(' '{' STMLIST '}' EXP ')'
     {
@@ -751,13 +650,6 @@ EXP: '(' EXP ')'
         IdExp* method = $3;
         vector<Exp*>* param = $5;
         $$ = new CallExp(pos, obj, method, param);
-    }
-    |
-    EXP '.' ID '(' ')'
-    {
-        Exp* obj = $1;
-        IdExp* method = $3;
-        $$ = new CallExp(pos, obj, method);
     }
     |
     EXP '.' ID
