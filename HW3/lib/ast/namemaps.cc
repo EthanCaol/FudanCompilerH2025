@@ -11,7 +11,6 @@
 using namespace std;
 using namespace fdmj;
 
-// TODO
 Name_Maps* makeNameMaps(Program* node) {
     std::cout << "TODO" << std::endl;
     return nullptr;

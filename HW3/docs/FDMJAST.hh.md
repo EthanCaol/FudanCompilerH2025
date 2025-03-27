@@ -1,98 +1,116 @@
-### 程序结构类
+Here's the documentation for the classes in the FDMJAST.hh file:
 
-- Program: 程序
-  - MainMethod
-  - ClassDecl
+### Program Structure Classes
 
-- MainMethod: 主方法
-  - VarDecl
-  - Stm
+**Program Class**
+- Represents the entire program
+- Contains:
+  - MainMethod: The main method of the program
+  - ClassDecl: List of class declarations
 
-- ClassDecl: 类声明
-  - IdExp: 类标识符
-  - IdExp: 继承类标识符
-  - VarDecl
-  - MethodDecl
+**MainMethod Class**
+- Represents the main method of the program
+- Contains:
+  - VarDecl: List of variable declarations
+  - Stm: List of statements
 
-### 类型和声明类
+**ClassDecl Class**
+- Represents a class declaration
+- Contains:
+  - IdExp: Class identifier
+  - IdExp: Extended class identifier (for inheritance)
+  - VarDecl: List of class variables
+  - MethodDecl: List of methods
 
-- Type: 类型信息
-  - TypeKind: 类型分类 (INT, CLASS, ARRAY)
-  - IdExp: 类标识符 (CLASS 类型)
-  - IntExp: 数组维度 (ARRAY 类型)
+### Type and Declaration Classes
 
-- VarDecl: 变量声明
-  - Type: 变量类型
-  - IdExp: 变量标识符
-  - 初始化值 (IntExp 或 IntExp 数组)
+**Type Class**
+- Represents type information
+- Contains:
+  - TypeKind: Type classification (INT, CLASS, ARRAY)
+  - IdExp: Class identifier (for CLASS type)
+  - IntExp: Array arity (for ARRAY type)
 
-- MethodDecl: 方法声明
-  - Type: 返回类型
-  - IdExp: 方法标识符
-  - Formal
-  - VarDecl
-  - Stm
+**VarDecl Class**
+- Represents variable declarations
+- Contains:
+  - Type: Variable type
+  - IdExp: Variable identifier
+  - Initialization value (IntExp or array of IntExp)
 
-- Formal: 方法参数
-  - Type: 参数类型
-  - IdExp: 参数标识符
+**MethodDecl Class**
+- Represents method declarations
+- Contains:
+  - Type: Return type
+  - IdExp: Method identifier
+  - Formal: List of formal parameters
+  - VarDecl: List of local variables
+  - Stm: List of statements
 
-### 语句类
+**Formal Class**
+- Represents formal parameters in method declarations
+- Contains:
+  - Type: Parameter type
+  - IdExp: Parameter identifier
 
-- Stm (基类): 所有语句类型的基类
+### Statement Classes
 
-**控制流语句:**
-- If: If-else 语句
-- While: While 循环语句
-- Nested: 语句块
-- Continue: Continue 语句
-- Break: Break 语句
-- Return: Return 语句
+**Stm (Base Class)**
+- Base class for all statement types
 
-**赋值和调用语句:**
-- Assign: 赋值语句
-- CallStm: 方法调用语句
+**Control Flow Statements:**
+- **If:** If-else statement
+- **While:** While loop statement
+- **Nested:** Block of statements
+- **Continue:** Continue statement
+- **Break:** Break statement
+- **Return:** Return statement
 
-**输入输出语句:**
-- PutInt: 打印整数语句
-- PutCh: 打印字符语句
-- PutArray: 打印数组语句
-- GetInt: 读取整数语句
-- GetCh: 读取字符语句
-- GetArray: 读取数组语句
+**Assignment and Call Statements:**
+- **Assign:** Assignment statement
+- **CallStm:** Method call statement
 
-**计时语句:**
-- Starttime: 开始计时语句
-- Stoptime: 停止计时语句
+**I/O Statements:**
+- **PutInt:** Print integer statement
+- **PutCh:** Print character statement
+- **PutArray:** Print array statement
+- **GetInt:** Read integer statement
+- **GetCh:** Read character statement
+- **GetArray:** Read array statement
 
-### 表达式类
+**Timing Statements:**
+- **Starttime:** Start timing statement
+- **Stoptime:** Stop timing statement
 
-- Exp (基类): 所有表达式类型的基类
+### Expression Classes
 
-**操作符:**
-- BinaryOp: 二元操作表达式
-- UnaryOp: 一元操作表达式
-- OpExp: 操作符表示
+**Exp (Base Class)**
+- Base class for all expression types
 
-**访问表达式:**
-- ArrayExp: 数组访问表达式
-- ClassVar: 类变量访问表达式
-- CallExp: 方法调用表达式
-- Length: 数组长度表达式
+**Operators:**
+- **BinaryOp:** Binary operation expression
+- **UnaryOp:** Unary operation expression
+- **OpExp:** Operator representation
 
-**字面量表达式:**
-- BoolExp: 布尔字面量
-- IntExp: 整数字面量
-- IdExp: 标识符表达式
+**Access Expressions:**
+- **ArrayExp:** Array access expression
+- **ClassVar:** Class variable access expression
+- **CallExp:** Method call expression
+- **Length:** Array length expression
 
-**特殊表达式:**
-- This: 'this' 引用
-- Esc: 带语句块的表达式
+**Literal Expressions:**
+- **BoolExp:** Boolean literal
+- **IntExp:** Integer literal
+- **IdExp:** Identifier expression
 
-### 通用特性
-所有类:
-- 继承自 AST 基类
-- 包含位置信息 (Pos)
-- 实现 clone() 方法用于深拷贝
-- 通过 accept() 方法支持访问者模式
-- 具有唯一的 ASTKind 标识符
+**Special Expressions:**
+- **This:** 'this' reference
+- **Esc:** Expression with statement block
+
+### Common Features
+All classes:
+- Inherit from AST base class
+- Include position information (Pos)
+- Implement clone() method for deep copying
+- Support visitor pattern through accept() method
+- Have unique ASTKind identifier

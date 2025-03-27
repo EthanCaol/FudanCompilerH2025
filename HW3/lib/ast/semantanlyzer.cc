@@ -12,6 +12,7 @@ using namespace std;
 using namespace fdmj;
 
 // TODO
+
 AST_Semant_Map* semant_analyze(Program* node) {
     std::cout << "TODO" << std::endl;
     return nullptr;

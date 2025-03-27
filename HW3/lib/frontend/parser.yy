@@ -49,36 +49,11 @@
         template<typename RHS>
         void calcLocation(location_t &current, const RHS &rhs, const std::size_t n);
     }
-
     #define YYLLOC_DEFAULT(Cur, Rhs, N) calcLocation(Cur, Rhs, N)
     #define yylex lexer.yylex
     Pos *pos;
 }
 
-%union {
-    int i;
-    string s;
-    IntExp* intExp;
-    IntExpList* intExpList;
-    IdExp* idExp;
-    OpExp* opExp;
-    BoolExp* boolExp;
-    Program* program;
-    MainMethod* mainMethod;
-    ClassDecl* classDecl;
-    ClassDeclList* classDeclList;
-    Type* type;
-    VarDecl* varDecl;
-    VarDeclList* varDeclList;
-    MethodDecl* methodDecl;
-    MethodDeclList* methodDeclList;
-    FormalList* formalList;
-    Stm* stm;
-    StmList* stmList;
-    Exp* exp;
-    ExpList* expList;
-    Program* root;
-}
 
 
 %token TRUE FALSE
@@ -339,7 +314,7 @@ FORMALLIST: // empty
     { $$ = new vector<Formal*>(); }
     |
     FORMALREST ',' TYPE ID 
-    { $1->push_back(new Formal(pos, $2, $3)); $$ = $1; }
+    { $1->push_back(new Formal(pos, $3, $4)); $$ = $1; }
     |
     TYPE ID
     {
