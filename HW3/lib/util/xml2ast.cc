@@ -512,7 +512,7 @@ StmList* create_stm_list(XMLElement* element) {
 #endif
     StmList *sl = new StmList();
     if (element->NoChildren()) {
-        delete sl; sl = nullptr;
+        // delete sl; sl = nullptr;
         return sl;
     }
     XMLElement *ce = element->FirstChildElement();

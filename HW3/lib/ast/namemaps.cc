@@ -110,6 +110,17 @@ Type* Name_Maps::get_method_type(string class_name, string method_name)
     return methods[p];
 }
 
+vector<string>* Name_Maps::get_method(string class_name)
+{
+    vector<string>* ml = new vector<string>();
+    for (auto it = methods.begin(); it != methods.end(); it++) {
+        if ((it->first).first == class_name) {
+            ml->push_back((it->first).second);
+        }
+    }
+    return ml;
+}
+
 bool Name_Maps::is_class_var(string class_name, string var_name)
 {
     pair<string, string> p(class_name, var_name);
@@ -133,6 +144,17 @@ VarDecl* Name_Maps::get_class_var(string class_name, string var_name)
     }
     pair<string, string> p(class_name, var_name);
     return classVar[p];
+}
+
+// 获取类所有成员变量
+vector<VarDecl*>* Name_Maps::get_class_var(string class_name){
+    vector<VarDecl*>* vl = new vector<VarDecl*>();
+    for (auto it = classVar.begin(); it != classVar.end(); it++) {
+        if ((it->first).first == class_name) {
+            vl->push_back(it->second);
+        }
+    }
+    return vl;
 }
 
 bool Name_Maps::is_method_var(string class_name, string method_name, string var_name)
@@ -189,6 +211,7 @@ bool Name_Maps::add_method_formal_list(string class_name, string method_name, ve
     methodFormalList[pair<string, string>(class_name, method_name)] = vl;
     return true;
 }
+
 
 vector<Formal*>* Name_Maps::get_method_formal_list(string class_name, string method_name)
 {

@@ -13,7 +13,7 @@ using namespace std;
 using namespace fdmj;
 using namespace tinyxml2;
 
-#define with_location_info false
+#define with_location_info true
 
 Program* prog();
 
@@ -26,8 +26,8 @@ int main(int argc, const char* argv[])
     chdir("../../test");
 
     string file;
-    file = "example";
-    // file = argv[argc - 1];
+    // file = "test2";
+    file = argv[argc - 1];
 
     string file_fmj = file + ".fmj";
     string file_ast = file + ".2.xml";
@@ -36,7 +36,7 @@ int main(int argc, const char* argv[])
     ifstream fmjfile(file_fmj);
     Program* root = fdmjParser(fmjfile, false);
     if (root == nullptr) {
-        cout << "AST无效!" << endl;
+        cout << "AST无效" << endl;
         return EXIT_FAILURE;
     }
 
@@ -44,7 +44,7 @@ int main(int argc, const char* argv[])
     XMLDocument* x = ast2xml(root, nullptr, with_location_info, false); // no semant info yet
     x->SaveFile(file_ast.c_str());
     if (x->Error()) {
-        cout << "AST无效!" << endl;
+        cout << "AST无效" << endl;
         return EXIT_FAILURE;
     }
 
@@ -53,19 +53,16 @@ int main(int argc, const char* argv[])
     x->LoadFile(file_ast.c_str());
     root = xml2ast(x->FirstChildElement());
     if (root == nullptr) {
-        cout <<  "AST无效!" << endl;
+        cout <<  "AST无效" << endl;
         return EXIT_FAILURE;
     }
 
-    // Semantic analysis
-    cout << "Semantic analysis..." << endl;
+    cout << "将AST转换为XML文件: " << file_ast_semant << endl;
     AST_Semant_Map* semant_map = semant_analyze(root);
-
-    cout << "Convert AST to XML with Semantic Info..." << endl;
     x = ast2xml(root, semant_map, with_location_info, true); // no semant info yet
 
     if (x->Error()) {
-        cout << "AST is not valid when converting from AST with Semant Info!" << endl;
+        cout << "AST无效" << endl;
         return EXIT_FAILURE;
     }
 

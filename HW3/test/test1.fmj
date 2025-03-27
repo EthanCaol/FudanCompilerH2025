@@ -1,6 +1,6 @@
 public int main() {
 	int x = 0;
-	int [] x = {1, 2, 3, 4, 100} ;
+	int [] z = {1, 2, 3, 4, 100} ;
 	int y = 19;
 	class A b;
 	x = 1;
@@ -15,7 +15,7 @@ public class B {
           starttime();
           return c&&c;
 	}
-	public int[] m1(int x, int[] y, class b x) {}
+	public int[] m1(int x, int[] y, class b z) {}
 }
 
 

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <cassert>
 #include "ASTheader.hh"
 #include "FDMJAST.hh"
 
@@ -19,7 +20,7 @@ public:
     Program(Pos* pos, MainMethod* main, vector<ClassDecl*>* cdl)
         : AST(pos)
         , main(main)
-        , cdl(cdl) { };
+        , cdl(cdl ? cdl : new vector<ClassDecl*>()) { };
     ASTKind getASTKind() override { return ASTKind::Program; }
     Program* clone() override;
     void accept(AST_Visitor& v) override { v.visit(this); }
@@ -33,8 +34,8 @@ public:
     vector<Stm*>* sl;
     MainMethod(Pos* pos, vector<VarDecl*>* vdl, vector<Stm*>* sl)
         : AST(pos)
-        , vdl(vdl)
-        , sl(sl) { };
+        , vdl(vdl ? vdl : new vector<VarDecl*>())
+        , sl(sl ? sl : new vector<Stm*>()) { };
     ASTKind getASTKind() override { return ASTKind::MainMethod; }
     MainMethod* clone() override;
     void accept(AST_Visitor& v) override { v.visit(this); }
@@ -53,14 +54,14 @@ public:
         : AST(pos)
         , id(id)
         , eid(nullptr)
-        , vdl(vdl)
-        , mdl(mdl) { };
+        , vdl(vdl ? vdl : new vector<VarDecl*>())
+        , mdl(mdl ? mdl : new vector<MethodDecl*>()) { };
     ClassDecl(Pos* pos, IdExp* id, IdExp* eid, vector<VarDecl*>* vdl, vector<MethodDecl*>* mdl)
         : AST(pos)
         , id(id)
         , eid(eid)
-        , vdl(vdl)
-        , mdl(mdl) { };
+        , vdl(vdl ? vdl : new vector<VarDecl*>())
+        , mdl(mdl ? mdl : new vector<MethodDecl*>()) { };
     ASTKind getASTKind() override { return ASTKind::ClassDecl; }
     ClassDecl* clone() override;
     void accept(AST_Visitor& v) override { v.visit(this); }
@@ -122,7 +123,7 @@ public:
         : AST(pos)
         , type(type)
         , id(id)
-        , init(init_array) { }; // 整型数组初始化
+        , init(init_array ? init_array : new vector<IntExp*>()) { }; // 整型数组初始化
     VarDecl(Pos* pos, Type* type, IdExp* id, variant<monostate, IntExp*, vector<IntExp*>*> init)
         : AST(pos)
         , type(type)
@@ -146,9 +147,9 @@ public:
         : AST(pos)
         , type(type)
         , id(id)
-        , fl(fl)
-        , vdl(vdl)
-        , sl(sl) { };
+        , fl(fl ? fl : new vector<Formal*>())
+        , vdl(vdl ? vdl : new vector<VarDecl*>())
+        , sl(sl ? sl : new vector<Stm*>()) { };
     ASTKind getASTKind() override { return ASTKind::MethodDecl; }
     MethodDecl* clone() override;
     void accept(AST_Visitor& v) override { v.visit(this); }
@@ -209,7 +210,7 @@ public:
     Nested() = default;
     Nested(Pos* pos, vector<Stm*>* sl)
         : Stm(pos)
-        , sl(sl) { };
+        , sl(sl ? sl : new vector<Stm*>()) { };
     ASTKind getASTKind() override { return ASTKind::Nested; }
     Nested* clone() override;
     void accept(AST_Visitor& v) override { v.visit(this); }
@@ -285,7 +286,7 @@ public:
         : Stm(pos)
         , obj(obj)
         , name(name)
-        , par(par) { };
+        , par(par ? par : new vector<Exp*>()) { };
 
     ASTKind getASTKind() override { return ASTKind::CallStm; }
     CallStm* clone() override;
@@ -425,7 +426,7 @@ public:
 
     Esc(Pos* pos, vector<Stm*>* sl, Exp* exp)
         : Exp(pos)
-        , sl(sl)
+        , sl(sl ? sl : new vector<Stm*>())
         , exp(exp) { };
     ASTKind getASTKind() override { return ASTKind::Esc; }
     Esc* clone() override;
@@ -569,7 +570,7 @@ public:
         : Exp(pos)
         , obj(obj)
         , name(name)
-        , par(par) { };
+        , par(par ? par : new vector<Exp*>()) { };
     ASTKind getASTKind() override { return ASTKind::CallExp; }
     CallExp* clone() override;
     void accept(AST_Visitor& v) override { v.visit(this); }

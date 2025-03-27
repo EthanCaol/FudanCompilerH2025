@@ -37,7 +37,7 @@ run: $(MAIN_EXE)
 	cd $(TEST_DIR) && \
 	for file in $$(ls .); do \
         if [ "$${file##*.}" = "fmj" ]; then \
-            echo "Parsing $${file%%.*}"; \
+            echo "\nParsing $${file%%.*}"; \
 			$(MAIN_EXE) "$${file%%.*}"; \
         fi \
 	done; \
