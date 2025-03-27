@@ -84,7 +84,6 @@ private:
     bool is_in_while = false;
 
     string fetch_class_name;
-    bool is_fetch_class = false;
     bool is_fetch_class_var = false;
     bool is_fetch_class_method = false;
 

@@ -97,6 +97,7 @@ void AST_Name_Map_Visitor::visit(ClassDecl* node)
             exit(1);
         }
 
+        // 父类在子类前已声明
         // 子类从其所有祖先类继承类变量
         // 子类不允许覆盖父类变量
         vector<VarDecl*>* vl = name_maps->get_class_var(node->eid->id);
@@ -214,7 +215,6 @@ void AST_Name_Map_Visitor::visit(MethodDecl* node)
 {
     // 执行名称映射操作 (类->方法, 类->方法->参数列表)
     if (!name_maps->add_method(current_class_name, node->id->id, node->type)) {
-        // TODO: 子类可以覆盖其祖先类中声明的方法, 但必须具有相同(返回类型,参数类型)
         cerr << node->id->getPos()->print() << endl;
         cerr << "- 类方法名已存在: " << current_class_name << "->" << current_method_name << endl;
         exit(1);
