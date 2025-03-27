@@ -103,14 +103,14 @@ void AST2XML::visit(Program *node) {
 #endif
     XMLElement* cn = doc->NewElement("Program");
     set_position_and_semant(cn, node->getPos(), node);
-    if (node->main == nullptr) {
+    if (node->mainMethod == nullptr) {
         cerr << "Error: No MainMethod found" << endl;
         el = nullptr;
         return;
     }
-    node->main->accept(*this);
+    node->mainMethod->accept(*this);
     if (el != nullptr) cn->InsertEndChild(el); //insert the main method
-    XMLElement *cn1 = visitList<ClassDecl>(doc, *this, node->cdl, "ClassDeclList");
+    XMLElement *cn1 = visitList<ClassDecl>(doc, *this, node->classDeclList, "ClassDeclList");
     if (cn1 != nullptr) cn->InsertEndChild(cn1); //insert the class declaration
     if (cn->FirstChildElement() == nullptr) {
         cerr << "Error: No child element found in Program" << endl;
@@ -127,9 +127,9 @@ cout<<"MainMethod"<<endl;
 #endif
   XMLElement *cn = doc->NewElement("MainMethod");
   set_position_and_semant(cn, node->getPos(), node);
-  XMLElement *cn1 = visitList<VarDecl>(doc, *this, node->vdl, "VarDeclList");
+  XMLElement *cn1 = visitList<VarDecl>(doc, *this, node->varDeclList, "VarDeclList");
   if (cn1 != nullptr) cn->InsertEndChild(cn1); //insert the variable declaration
-  XMLElement *cn2 = visitList<Stm>(doc, *this, node->sl, "StmList");
+  XMLElement *cn2 = visitList<Stm>(doc, *this, node->stmList, "StmList");
   if (cn2 != nullptr) cn->InsertEndChild(cn2); //insert the statement
   el = cn;
 }
@@ -410,16 +410,16 @@ cout<<"CallStm"<<endl;
   }
   node->obj->accept(*this);
   if (el != nullptr) cn->InsertEndChild(el); //insert the object
-  if (node->name== nullptr) {
+  if (node->method== nullptr) {
     cerr << "Error: No method id found in a CallStm" << endl;
     el = nullptr;
     return;
   }
   XMLElement *cn1 = doc->NewElement("IdExp");
-  cn1->SetAttribute("id", node->name->id.c_str());
-  set_position_and_semant(cn1, node->name->getPos(), node->name);
+  cn1->SetAttribute("id", node->method->id.c_str());
+  set_position_and_semant(cn1, node->method->getPos(), node->method);
   cn->InsertEndChild(cn1);
-  XMLElement *cn2 = visitList<Exp>(doc, *this, node->par, "ParList");
+  XMLElement *cn2 = visitList<Exp>(doc, *this, node->param, "ParList");
   if (cn2 != nullptr) cn->InsertEndChild(cn2); //insert the parameters
   el = cn;
 }
@@ -628,16 +628,16 @@ cout<<"CallExp"<<endl;
   }
   node->obj->accept(*this);
   if (el != nullptr) cn->InsertEndChild(el); //insert the object
-  if (node->name == nullptr) {
+  if (node->method == nullptr) {
     cerr << "Error: No method id found in a CallExp" << endl;
     el = nullptr;
     return;
   }
   XMLElement *cn1 = doc->NewElement("IdExp");
-  cn1->SetAttribute("id", node->name->id.c_str());
-  set_position_and_semant(cn1, node->name->getPos(), node->name);
+  cn1->SetAttribute("id", node->method->id.c_str());
+  set_position_and_semant(cn1, node->method->getPos(), node->method);
   cn->InsertEndChild(cn1);
-  XMLElement *cn2 = visitList<Exp>(doc, *this, node->par, "ParList");
+  XMLElement *cn2 = visitList<Exp>(doc, *this, node->param, "ParList");
   if (cn2 != nullptr) cn->InsertEndChild(cn2); //insert the parameters
   el = cn;
 }

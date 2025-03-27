@@ -5,9 +5,10 @@
 %%
 [0-9]+          { yylval = atoi(yytext); return T_NUM; }
 [-/+*()\n]      { return yytext[0]; }
-.               { return 0; /* end when meet everything else */ }
+.               { return 0; }
 %%
 
+// 文件输入结束的行为
 int yywrap(void) { 
     return 1;
 }

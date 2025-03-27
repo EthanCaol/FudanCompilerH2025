@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #if !defined(yyFlexLexerOnce)
 #include <FlexLexer.h>
 #endif

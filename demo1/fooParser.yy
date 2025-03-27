@@ -6,13 +6,16 @@
     #include "FooLexer.hh"
 }
 
+/* 指定类型 std::string yylval */
 %define api.value.type {std::string}
 
+/* 指定参数 parser(FooLexer &lexer) */
 %parse-param {FooLexer &lexer}
 
 %header
 
 %code {
+    // 指定 lexer.yylex
     #define yylex lexer.yylex
 }
 

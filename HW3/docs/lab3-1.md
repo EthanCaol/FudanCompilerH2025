@@ -2,7 +2,7 @@
 
 # Syntax
 
-```fdmj2025
+```js
 Prog -> MainMethod ClassDeclList
   MainMethod -> public int main '(' ')' '{' VarDeclList StmList '}'
     VarDeclList -> ε | VarDecl VarDeclList
@@ -43,6 +43,49 @@ Prog -> MainMethod ClassDeclList
         Type -> class id | int | int '[' ']'
           FormalList -> ε | Type id FormalRest
             FormalRest -> ε | ',' Type id FormalRest
+```
+
+```py
+PROG -> MAINMETHOD CLASSDECLLIST
+  MAINMETHOD -> PUBLIC INT MAIN '(' ')' '{' VARDECLLIST STMLIST '}'
+    VARDECLLIST -> ε | VARDECL VARDECLLIST
+      VARDECL -> CLASS ID ID ';' // ID <=> [a-z_A-Z][a-z_A-Z0-9]*
+               | INT ID ';' | INT ID '=' CONST ';' 
+               | INT '[' ']' ID ';' | INT '[' ']' ID '=' '{' CONSTLIST '}' ';'
+               | INT '[' NUM ']' ID ';' | INT '[' NUM ']' ID '=' '{' CONSTLIST '}' ';' // NUM <=> [1-9][0-9]*|0
+        CONST -> NUM | '-' NUM
+        CONSTLIST -> ε | CONST CONSTREST
+          CONSTREST -> ε | ',' CONST CONSTREST
+    STMLIST -> ε | STM STMLIST
+      STM -> '{' STMLIST '}' 
+           | IF '(' EXP ')' STM ELSE STM | IF '(' EXP ')' STM 
+           | WHILE '(' EXP ')' STM | WHILE '(' EXP ')' ';'
+           | EXP '=' EXP ';' 
+           | EXP '.' ID '(' EXPLIST ')' ';' 
+           | CONTINUE ';' | BREAK ';' 
+           | RETURN EXP ';' 
+           | PUTINT '(' EXP ')' ';' | PUTCH '(' EXP ')' ';'
+           | PUTARRAY '(' EXP ',' EXP ')' ';'
+           | STARTTIME '(' ')' ';' | STOPTIME '(' ')' ';'
+      EXP -> NUM | TRUE | FALSE | LENGTH '(' EXP ')'
+           | GETINT '(' ')' | GETCH '(' ')'
+           | GETARRAY '(' EXP ')'
+           | ID | THIS
+           | EXP OP EXP | '!' EXP | '-' EXP // OP stands for "+, - , * , / , || , && , < , <= , > , >= , == , != ". When applied to arrays, the operations are element-wise applied. Boolean binary operations (|| and &&) follow the "shortcut" semantics.
+           | '(' EXP ')' | '(' '{' STMLIST '}' EXP ')'
+           | EXP '.' ID
+           | EXP '.' ID '(' EXPLIST ')'
+           | EXP '[' EXP ']'
+      EXPLIST -> ε | EXP EXPREST
+        EXPREST -> ε | ',' EXP EXPREST
+  CLASSDECLLIST -> ε | CLASSDECL CLASSDECLLIST
+    CLASSDECL -> PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}' 
+               | PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
+      METHODDECLLIST -> ε | METHODDECL METHODDECLLIST
+      METHODDECL -> PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
+        TYPE -> CLASS ID | INT | INT '[' ']'
+          FORMALLIST -> ε | TYPE ID FORMALREST
+            FORMALREST -> ε | ',' TYPE ID FORMALREST
 ```
 
 # Overall Structure

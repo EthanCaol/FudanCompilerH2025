@@ -1,8 +1,6 @@
 #ifndef _FDMJAST_HH
 #define _FDMJAST_HH
 
-// This file defines all the AST node classes
-
 #include "ASTheader.hh"
 #include "FDMJAST.hh"
 #include <string>

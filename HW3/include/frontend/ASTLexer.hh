@@ -4,11 +4,13 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#if ! defined(yyFlexLexerOnce)
+
+#if !defined(yyFlexLexerOnce)
 #define yyFlexLexer yy_ast_FlexLexer
 #include <FlexLexer.h>
 #undef yyFlexLexer
 #endif
+
 #include "ast_location.hh"
 #include "ASTheader.hh"
 #include "FDMJAST.hh"
@@ -24,66 +26,67 @@ using namespace fdmj;
 #define StmList vector<Stm*>
 #define ExpList vector<Exp*>
 
-namespace fdmj
-{
-    //These are the types of values (yylval) that a token can have
-    //This can change if more types are added
-    class AST_YYSTYPE
-    {
-        public:
-            int i;
-            string s;
-            IntExp* intExp;
-            IntExpList *intExpList;
-            IdExp *idExp;
-            OpExp *opExp;
-            BoolExp *boolExp;
-            Program *program;
-            MainMethod *mainMethod;
-            ClassDecl *classDecl;
-            ClassDeclList *classDeclList;
-            Type *type;
-            VarDecl *varDecl;
-            VarDeclList *varDeclList;
-            MethodDecl *methodDecl;
-            MethodDeclList *methodDeclList;
-            FormalList *formalList;
-            Stm* stm;
-            StmList* stmList;
-            Exp* exp;
-            ExpList *expList;
-            Program *root;
-    };
+namespace fdmj {
+// 语义值类型
+class AST_YYSTYPE {
+public:
+    int i;
+    string s;
 
-    class ASTLexer : public yy_ast_FlexLexer
-    {
-        //initialize the line and column numbers. 
-        //Each time a newline is encountered, the line number should increment and column reset
-        std::size_t currentLine = 1;
-        std::size_t currentColumn = 1;
-        
-        //These are the values that the lexer will return
-        AST_YYSTYPE *yylval = nullptr;
-        location_t *yylloc = nullptr;
-        
-         
-        //This is the function that will copy the value of the token to yylval
-        //The lexer will call this function to copy the value of the token to yylval
-        //We will use it when a token is matched and need to return a value in yylval.
-        void copyValue(const string s) { yylval->s = s; }
-        void copyValue(const int n) { yylval->i = n;}
-        //void copyValue(const ASSTNode *node) { yylval->node = nullptr; exit(EXIT_FAILURE);} //the lexer shouldnt see node!
+    IntExp* intExp;
+    IntExpList* intExpList;
+    IdExp* idExp;
+    OpExp* opExp;
+    BoolExp* boolExp;
+    Program* program;
+    MainMethod* mainMethod;
+    ClassDecl* classDecl;
+    ClassDeclList* classDeclList;
+    Type* type;
+    VarDecl* varDecl;
+    VarDeclList* varDeclList;
+    MethodDecl* methodDecl;
+    MethodDeclList* methodDeclList;
+    FormalList* formalList;
+    Stm* stm;
+    StmList* stmList;
+    Exp* exp;
+    ExpList* expList;
+    
+    Program* root;
+};
 
-        //this is the function that will copy the location of the token to yylloc
-        //this is needed in order to keep track of the location of the token
-        //we will use it for YY_USER_ACTION, i.e., whenever a pattern in matched
-        void copyLocation() { *yylloc = location_t(currentLine, currentColumn, currentLine, yyleng+currentColumn-1); 
-                               currentColumn += yyleng; }  
-        
-    public:
-        //The API to this lexer 
-        ASTLexer(std::istream &in, const bool debug) : yy_ast_FlexLexer(&in) { yy_ast_FlexLexer::set_debug(debug); }
-        int yylex(AST_YYSTYPE *const lval, location_t *const lloc);
-    };
-} //namespace fdmj
+class ASTLexer : public yy_ast_FlexLexer {
+    // 初始化行号和列号
+    // 每次遇到换行符时, 行号增加, 列号重置
+    std::size_t currentLine = 1;
+    std::size_t currentColumn = 1;
+
+    // lexer返回的token信息
+    AST_YYSTYPE* yylval = nullptr;
+    location_t* yylloc = nullptr;
+
+    // 将token的值复制到yylval
+    // <INITIAL>{non_negative_integer} { copyValue(std::atoi(yytext)); return Token::NONNEGATIVEINT; }
+    // <INITIAL>{identifier}           { copyValue(yytext); return Token::IDENTIFIER; }
+    void copyValue(const string s) { yylval->s = s; }
+    void copyValue(const int n)    { yylval->i = n; }
+
+    // 将token的位置信息复制到yylloc (每次发生匹配时执行)
+    // #define YY_USER_ACTION copyLocation();
+    void copyLocation()
+    {
+        *yylloc = location_t(currentLine, currentColumn, currentLine, yyleng + currentColumn - 1);
+        currentColumn += yyleng;
+    }
+
+public:
+    ASTLexer(std::istream& in, const bool debug)
+        : yy_ast_FlexLexer(&in)
+    {
+        yy_ast_FlexLexer::set_debug(debug);
+    }
+    int yylex(AST_YYSTYPE* const lval, location_t* const lloc);
+};
+} // namespace fdmj
 #endif

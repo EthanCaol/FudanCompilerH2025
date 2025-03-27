@@ -1,6 +1,6 @@
 %{
     #include <stdio.h>
-    extern int yylex();
+    extern int yylex(); // 从输入流中读取字符 并返回​词法单元
     void yyerror(const char* msg) {}
 %}
 

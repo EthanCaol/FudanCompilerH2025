@@ -4,26 +4,26 @@
 %locations
 
 %code requires {
-  #define DEBUG
-  #undef DEBUG
-  #include <iostream>
-  #include <vector>
-  #include <algorithm>
-  #include <string>
-  #include <variant>
-  #include "ast_location.hh"
-  #include "ASTLexer.hh"
-  #include "ASTheader.hh"
-  #include "FDMJAST.hh"
+    // #define DEBUG
+    #undef DEBUG
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    #include <string>
+    #include <variant>
+    #include "ast_location.hh"
+    #include "ASTLexer.hh"
+    #include "ASTheader.hh"
+    #include "FDMJAST.hh"
 
-  using namespace std;
-  using namespace fdmj;
+    using namespace std;
+    using namespace fdmj;
 }
 
-%define api.namespace {fdmj}
-%define api.parser.class {ASTParser}
-%define api.value.type {AST_YYSTYPE}
-%define api.location.type {ast_location}
+%define api.namespace     {fdmj}         // 命名空间
+%define api.parser.class  {ASTParser}    // parser类名
+%define api.value.type    {AST_YYSTYPE}  // 语义值类型
+%define api.location.type {ast_location} // 位置类型
 
 %define parse.error detailed
 %define parse.trace
@@ -31,6 +31,7 @@
 %header
 %verbose
 
+// ASTParser 构造函数参数
 %parse-param {ASTLexer &lexer}
 %parse-param {const bool debug}
 %parse-param {AST_YYSTYPE* result}
@@ -48,215 +49,776 @@
         template<typename RHS>
         void calcLocation(location_t &current, const RHS &rhs, const std::size_t n);
     }
-    
+
     #define YYLLOC_DEFAULT(Cur, Rhs, N) calcLocation(Cur, Rhs, N)
     #define yylex lexer.yylex
-    Pos *p;
+    Pos *pos;
 }
 
-//terminals with no value 
-%token PUBLIC INT MAIN RETURN 
-//terminals with value
-%token<i> NONNEGATIVEINT
-%token<s> IDENTIFIER
-%token '(' ')' '[' ']' '{' '}' '=' ',' ';' '.' 
-%token ADD MINUS TIMES DIVIDE EQ NE LT LE GT GE AND OR
-//non-terminals, need type information only (not tokens)
-%type <program> PROG 
-%type <mainMethod> MAINMETHOD 
+%union {
+    int i;
+    string s;
+    IntExp* intExp;
+    IntExpList* intExpList;
+    IdExp* idExp;
+    OpExp* opExp;
+    BoolExp* boolExp;
+    Program* program;
+    MainMethod* mainMethod;
+    ClassDecl* classDecl;
+    ClassDeclList* classDeclList;
+    Type* type;
+    VarDecl* varDecl;
+    VarDeclList* varDeclList;
+    MethodDecl* methodDecl;
+    MethodDeclList* methodDeclList;
+    FormalList* formalList;
+    Stm* stm;
+    StmList* stmList;
+    Exp* exp;
+    ExpList* expList;
+    Program* root;
+}
+
+
+%token TRUE FALSE
+%token INT CLASS PUBLIC EXTENDS THIS
+%token IF ELSE WHILE CONTINUE BREAK MAIN RETURN
+%token PUTINT PUTCH PUTARRAY STARTTIME STOPTIME
+%token GETINT GETCH GETARRAY LENGTH
+
+%token ADD MINUS TIMES DIVIDE                   // 算数运算
+%token AND OR NOT                               // 逻辑运算
+%token EQ NE LE LT GE GT                        // 比较运算
+%token '(' ')' '[' ']' '{' '}' '=' ',' ';' '.'  // 其他符号
+
+// 优先级从低到高
+%left OR
+%left AND
+%right NOT
+%nonassoc EQ NE LE LT GE GT
+%left ADD MINUS
+%left TIMES DIVIDE
+%nonassoc '[' ']'
+%right UMINUS
+
+%token<i> NUM
+%token<s> NAME
+
+%type <intExp> CONST
+%type <intExpList> CONSTLIST
+%type <intExpList> CONSTREST
+%type <idExp> ID
+
+%type <type> TYPE
+%type <program> PROG
+%type <mainMethod> MAINMETHOD
+
+%type <classDecl> CLASSDECL
+%type <classDeclList> CLASSDECLLIST
+
+%type <varDecl> VARDECL
+%type <varDeclList> VARDECLLIST
+
+%type <methodDecl> METHODDECL
+%type <methodDeclList> METHODDECLLIST
+
+%type <formalList> FORMALLIST
+%type <formalList> FORMALREST
+
 %type <stm> STM
 %type <stmList> STMLIST
+
 %type <exp> EXP
-%type <idExp> ID 
+%type <expList> EXPLIST
+%type <expList> EXPREST
+
 
 %start PROG
 %expect 0
 
 %%
-PROG: MAINMETHOD 
-  { 
-#ifdef DEBUG
-    cerr << "Program" << endl;
-#endif
-    result->root = new Program(p, $1);
-    //$$ = result->root;
-  }
-  ;
-MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' STMLIST '}'
-  {
-#ifdef DEBUG
-    cerr << "MainMethod" << endl;
-#endif
-    $$ = new MainMethod(p, nullptr, $7) ;
-  }
-  ;
+// 标识符: NAME
+ID: NAME { $$ = new IdExp(pos, $1); }
+    ;
+
+
+
+// 常量: 整数 | 负整数
+// Const: NUM | '-' NUM
+CONST: NUM { $$ = new IntExp(pos, $1); }
+    |
+    MINUS NUM { $$ = new IntExp(pos, -$2); }
+    ;
+
+// 常量列表: ε | 常量 常量余表
+// ConstList: ε | Const ConstRest
+CONSTLIST: // empty
+    { $$ = new IntExpList(); }
+    |
+    CONST CONSTREST
+    {
+        IntExpList* constList = $2;
+        constList->push_back($1);
+        rotate(constList->begin(), constList->end() - 1, constList->end());
+        $$ = constList;
+    }
+    ;
+
+// 常量余表: ε | ',' 常量 常量余表
+// ConstRest: ε | ',' Const ConstRest
+CONSTREST: // empty
+    { $$ = new IntExpList(); }
+    |
+    ',' CONST CONSTREST
+    {
+        IntExpList* constList = $3;
+        constList->push_back($2);
+        rotate(constList->begin(), constList->end() - 1, constList->end());
+        $$ = constList;
+    }
+    ;
+
+    
+
+
+// 程序: 主方法 类声明列表
+// PROG: MAINMETHOD CLASSDECLLIST
+PROG: MAINMETHOD CLASSDECLLIST
+    {
+        MainMethod* mainMethod = $1;
+        ClassDeclList* classDeclList = $2;
+        result->root = new Program(pos, mainMethod, classDeclList);
+    }
+    ;
+
+// 主方法: public int main() { 变量声明列表 语句列表 }
+// MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' VARDECLLIST STMLIST '}';
+MAINMETHOD: PUBLIC INT MAIN '(' ')' '{' VARDECLLIST STMLIST '}'
+    {
+        VarDeclList* varDeclList = $7;
+        vector<Stm*> *stmList = $8;
+        $$ = new MainMethod(pos, varDeclList, stmList);
+    }
+    ;
+
+
+
+
+
+// 类声明列表: ε | 类声明 类声明列表
+// CLASSDECLLIST: ε | CLASSDECL CLASSDECLLIST
+CLASSDECLLIST: // empty
+    { $$ = new ClassDeclList(); }
+    |
+    CLASSDECL CLASSDECLLIST
+    {
+        ClassDeclList* classDeclList = $2;
+        classDeclList->push_back($1);
+        rotate(classDeclList->begin(), classDeclList->end() - 1, classDeclList->end());
+        $$ = classDeclList;
+    }
+    ;
+
+// 类声明: 类名 [基类名] { 变量声明列表 方法声明列表 }
+// CLASSDECL: PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}'
+//          | PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
+CLASSDECL: PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}'
+    {
+        IdExp* id = $3;
+        vector<VarDecl*> *varDeclList = $5;
+        vector<MethodDecl*> *methodDeclList = $6;
+        $$ = new ClassDecl(pos, id, varDeclList, methodDeclList);
+    }
+    |
+    PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
+    {
+        IdExp* id = $3;
+        IdExp* eid = $5;
+        vector<VarDecl*> *varDeclList = $7;
+        vector<MethodDecl*> *methodDeclList = $8;
+        $$ = new ClassDecl(pos, id, eid, varDeclList, methodDeclList);
+    }
+    ;
+
+
+
+
+
+// 类型:  整型 | 整型数组 | 类
+// TYPE: INT | INT '[' ']' | CLASS ID
+TYPE: INT
+    {
+        $$ = new Type(pos);
+    }
+    |
+    INT '[' ']'
+    {
+        IntExp* arity = new IntExp(pos, 0);
+        $$ = new Type(pos, arity);
+    }
+    |
+    CLASS ID
+    {
+        IdExp* cid = $2;
+        $$ = new Type(pos, cid);
+    }
+    ;
+
+
+
+
+
+// 变量声明列表: ε | 变量声明 变量声明列表
+// VARDECLLIST: ε | VARDECL VARDECLLIST
+VARDECLLIST: // empty
+    { $$ = new VarDeclList(); }
+    |
+    VARDECL VARDECLLIST
+    {
+        VarDeclList* varDeclList = $2;
+        varDeclList->push_back($1);
+        rotate(varDeclList->begin(), varDeclList->end() - 1, varDeclList->end());
+        $$ = varDeclList;
+    }
+    ;
+
+// 变量声明
+// VARDECL: CLASS ID ID ';'
+//        | INT ID ';'
+//        | INT '[' ']' ID ';'
+//        | INT '[' NUM ']' ID ';'
+//        | INT ID '=' CONST ';'
+//        | INT '[' ']' ID '=' '{' CONSTLIST '}' ';'
+//        | INT '[' NUM ']' ID '=' '{' CONSTLIST '}' ';'
+VARDECL: CLASS ID ID ';'
+    {
+        IdExp* cid = $2;
+        IdExp* id = $3;
+        Type* type = new Type(pos, cid); // 类
+        $$ = new VarDecl(pos, type, id); // 无初始化
+    }
+    |
+    INT ID ';'
+    {
+        IdExp* id = $2;
+        Type* type = new Type(pos);      // 整型
+        $$ = new VarDecl(pos, type, id); // 无初始化
+    }
+    |
+    INT '[' ']' ID ';'
+    {
+        IdExp* id = $4;
+        IntExp* arity = new IntExp(pos, 0);
+        Type* type = new Type(pos, arity); // 整型数组
+        $$ = new VarDecl(pos, type, id);   // 无初始化
+    }
+    |
+    INT '[' NUM ']' ID ';'
+    {
+        IdExp* id = $5;
+        IntExp* arity = new IntExp(pos, $3);
+        Type* type = new Type(pos, arity); // 整型数组
+        $$ = new VarDecl(pos, type, id);   // 无初始化
+    }
+    |
+    INT ID '=' CONST ';'
+    {
+        IdExp* id = $2;
+        IntExp* init_int = $4;
+        Type* type = new Type(pos);                // 整型
+        $$ = new VarDecl(pos, type, id, init_int); // 整型初始化
+    }
+    |
+    INT '[' ']' ID '=' '{' CONSTLIST '}' ';'
+    {
+        IdExp* id = $4;
+        IntExpList* init_array = $7;
+        IntExp* arity = new IntExp(pos, 0);
+        Type* type = new Type(pos, arity);          // 整型数组
+        $$ = new VarDecl(pos, type, id, init_array); // 整型数组初始化
+    }
+    |
+    INT '[' NUM ']' ID '=' '{' CONSTLIST '}' ';'
+    {
+        IdExp* id = $5;
+        IntExpList* init_array = $8;
+        IntExp* arity = new IntExp(pos, $3);
+        Type* type = new Type(pos, arity);           // 整型数组
+        $$ = new VarDecl(pos, type, id, init_array); // 整型数组初始化
+    }
+    ;
+
+
+
+
+
+// 方法声明列表: ε | 方法声明 方法声明列表
+// METHODDECLLIST: ε | METHODDECL METHODDECLLIST
+METHODDECLLIST: // empty
+    { $$ = new MethodDeclList(); }
+    |
+    METHODDECL METHODDECLLIST
+    {
+        MethodDeclList* methodDeclList = $2;
+        methodDeclList->push_back($1);
+        rotate(methodDeclList->begin(), methodDeclList->end() - 1, methodDeclList->end());
+        $$ = methodDeclList;
+    }
+    ;
+
+// 方法声明: 返回类型 方法名(形参列表) { 变量声明列表 语句列表 }
+// METHODDECL: PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
+//           | PUBLIC TYPE ID '(' ')' '{' VARDECLLIST STMLIST '}'
+//           | PUBLIC TYPE ID '(' FORMALLIST ')' '{' STMLIST '}'
+//           | PUBLIC TYPE ID '(' ')' '{' STMLIST '}'
+METHODDECL: PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
+    {
+        Type* type = $2;
+        IdExp* id = $3;
+        vector<Formal*>* formalList = $5;
+        vector<VarDecl*>* varDeclList = $8;
+        vector<Stm*>* stmList = $9;
+        $$ = new MethodDecl(pos, type, id, formalList, varDeclList, stmList);
+    }
+    |
+    PUBLIC TYPE ID '(' ')' '{' VARDECLLIST STMLIST '}'
+    {
+        Type* type = $2;
+        IdExp* id = $3;
+        vector<VarDecl*>* varDeclList = $7;
+        vector<Stm*>* stmList = $8;
+        $$ = new MethodDecl(pos, type, id, varDeclList, stmList);
+    }
+    |
+    PUBLIC TYPE ID '(' FORMALLIST ')' '{' STMLIST '}'
+    {
+        Type* type = $2;
+        IdExp* id = $3;
+        vector<Formal*>* formalList = $5;
+        vector<Stm*>* stmList = $8;
+        $$ = new MethodDecl(pos, type, id, formalList, stmList);
+    }
+    |
+    PUBLIC TYPE ID '(' ')' '{' STMLIST '}'
+    {
+        Type* type = $2;
+        IdExp* id = $3;
+        vector<Stm*>* stmList = $7;
+        $$ = new MethodDecl(pos, type, id, stmList);
+    }
+    ;
+
+
+
+
+// 方法形参列表
+// FORMALLIST: ε | TYPE ID FORMALREST
+FORMALLIST: // empty
+    { $$ = new vector<Formal*>(); }
+    |
+    TYPE ID FORMALREST
+    {
+        Type* type = $1;
+        IdExp* id = $2;
+        vector<Formal*>* formalList = $3;
+        formalList->push_back(new Formal(pos, type, id));
+        rotate(formalList->begin(), formalList->end() - 1, formalList->end());
+        $$ = formalList;
+    }
+    ;
+
+// 方法形参余表
+// FORMALREST: ε | ',' TYPE ID FORMALREST
+FORMALREST: // empty
+    { $$ = new vector<Formal*>(); }
+    |
+    ',' TYPE ID FORMALREST
+    {
+        Type* type = $2;
+        IdExp* id = $3;
+        vector<Formal*>* formalList = $4;
+        formalList->push_back(new Formal(pos, type, id));
+        rotate(formalList->begin(), formalList->end() - 1, formalList->end());
+        $$ = formalList;
+    }
+    ;
+
+
+
+
+
+
+// 语句列表
+// STMLIST: ε | STM STMLIST
 STMLIST: // empty
-  {
-#ifdef DEBUG
-    cerr << "STMLIST empty" << endl;
-#endif
-    $$ = new vector<Stm*>();
-  }
-  |
-  STM STMLIST
-  {
-#ifdef DEBUG
-    cerr << "STM STMLIST" << endl;
-#endif
-    vector<Stm*> *v = $2;
-    v->push_back($1);
-    rotate(v->begin(), v->end() - 1, v->end());
-    $$ = v;
-  }
-  ;
-STM: ID '=' EXP ';'
-  {
-#ifdef DEBUG
-    cerr << "Assign" << endl;
-#endif
-    $$ = new Assign(p, $1, $3);
-  }
-  |
-  RETURN EXP ';'
-  {
-#ifdef DEBUG
-    cerr << "Return" << endl;
-#endif
-    $$ = new Return(p, $2);
-  }
-  ;
-EXP: '(' EXP ADD EXP ')'
-  {
-#ifdef DEBUG
-    cerr << "EXP ADD EXP" << endl;
-#endif
-    Pos *p1 = new Pos(@3.sline, @3.scolumn, @3.eline, @3.ecolumn);
-    $$ = new BinaryOp(p, $2, new OpExp(p1, "+"), $4);
-  }
-  |
-  '(' EXP MINUS EXP ')'
-  {
-#ifdef DEBUG
-    cerr << "EXP MINUS EXP" << endl;
-#endif
-    Pos *p1 = new Pos(@3.sline, @3.scolumn, @3.eline, @3.ecolumn);
-    $$ = new BinaryOp(p, $2, new OpExp(p1, "-"), $4);
-  }
-  |
-  '(' EXP TIMES EXP ')'
-  {
-#ifdef DEBUG
-    cerr << "EXP TIMES EXP" << endl;
-#endif
-    Pos *p1 = new Pos(@3.sline, @3.scolumn, @3.eline, @3.ecolumn);
-    $$ = new BinaryOp(p, $2, new OpExp(p1, "*"), $4);
-  }
-  |
-  '(' EXP DIVIDE EXP ')'
-  {
-#ifdef DEBUG
-    cerr << "EXP DIVIDE EXP" << endl;
-#endif
-    Pos *p1 = new Pos(@3.sline, @3.scolumn, @3.eline, @3.ecolumn);
-    $$ = new BinaryOp(p, $2, new OpExp(p1, "/"), $4);
-  }
-  |
-  NONNEGATIVEINT
-  {
-#ifdef DEBUG
-    cerr << "NonNegativeInt: " << $1 << endl;
-#endif
-    $$ = new IntExp(p, $1);
-  }
-  |
-  '(' MINUS EXP ')'
-  {
-#ifdef DEBUG
-    cerr << "- EXP" << endl;
-#endif
-    Pos *p1 = new Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
-    $$ =  new UnaryOp(p, new OpExp(p1, "-"), $3);
-  }
-  |
-  '(' EXP ')'
-  {
-#ifdef DEBUG
-    cerr << "( EXP )" << endl;
-#endif
-    $$ = $2;
-  }
-  |
-  '(' '{' STMLIST '}' EXP ')'
-  {
-#ifdef DEBUG
-    cerr << "( { STMLIST } EXP )" << endl;
-#endif
-    $$ = new Esc(p, $3, $5);
-  }
-  |
-  ID
-  {
-#ifdef DEBUG
-    cerr << "ID" << endl;
-#endif
-    $$ = $1;
-  }
-  ;
-ID: IDENTIFIER
-  {
-#ifdef DEBUG
-    cerr << "Identifier: " << $1 << endl;
-#endif
-    $$ = new IdExp(p, $1);
-  }
-  ;
+    { $$ = new vector<Stm*>(); }
+    |
+    STM STMLIST
+    {
+        Stm* stm = $1;
+        vector<Stm*> *stmList = $2;
+        stmList->push_back(stm);
+        rotate(stmList->begin(), stmList->end() - 1, stmList->end());
+        $$ = stmList;
+    }
+    ;
+
+// 语句
+// STM: '{' STMLIST '}'
+//      | IF '(' EXP ')' STM ELSE STM
+//      | IF '(' EXP ')' STM
+//      | WHILE '(' EXP ')' STM
+//      | WHILE '(' EXP ')' ';'
+//      | EXP '=' EXP ';'
+//      | EXP '.' ID '(' EXPLIST ')' ';'
+//      | EXP '.' ID '(' ')' ';'
+//      | CONTINUE ';'
+//      | BREAK ';'
+//      | RETURN EXP ';'
+//      | PUTINT '(' EXP ')' ';'
+//      | PUTCH '(' EXP ')' ';'
+//      | PUTARRAY '(' EXP ',' EXP ')' ';'
+//      | STARTTIME '(' ')' ';'
+//      | STOPTIME '(' ')' ';'
+STM: '{' STMLIST '}'
+    {
+        vector<Stm*>* stmList = $2;
+        $$ = new Nested(pos, stmList);
+    }
+    |
+    IF '(' EXP ')' STM ELSE STM
+    {
+        Exp* exp = $3;
+        Stm* stm1 = $5;
+        Stm* stm2 = $7;
+        $$ = new If(pos, exp, stm1, stm2);
+    }
+    |
+    IF '(' EXP ')' STM
+    {
+        Exp* exp = $3;
+        Stm* stm1 = $5;
+        $$ = new If(pos, exp, stm1);
+    }
+    |
+    WHILE '(' EXP ')' STM
+    {
+        Exp* exp = $3;
+        Stm* stm = $5;
+        $$ = new While(pos, exp, stm);
+    }
+    |
+    WHILE '(' EXP ')' ';'
+    {
+        Exp* exp = $3;
+        $$ = new While(pos, exp);
+    }
+    |
+    EXP '=' EXP ';'
+    {
+        Exp* left = $1;
+        Exp* right = $3;
+        $$ = new Assign(pos, left, right);
+    }
+    |
+    EXP '.' ID '(' EXPLIST ')' ';'
+    {
+        Exp* obj = $1;
+        IdExp* method = $3;
+        vector<Exp*>* param = $5;
+        $$ = new CallStm(pos, obj, method, param);
+    }
+    |
+    EXP '.' ID '(' ')' ';'
+    {
+        Exp* obj = $1;
+        IdExp* method = $3;
+        $$ = new CallStm(pos, obj, method);
+    }
+    |
+    CONTINUE ';' { $$ = new Continue(pos); }
+    |
+    BREAK ';' { $$ = new Break(pos); }
+    |
+    RETURN EXP ';'
+    {
+        Exp* exp = $2;
+        $$ = new Return(pos, exp);
+    }
+    |
+    PUTINT '(' EXP ')' ';'
+    {
+        Exp* exp = $3;
+        $$ = new PutInt(pos, exp);
+    }
+    |
+    PUTCH '(' EXP ')' ';'
+    {
+        Exp* exp = $3;
+        $$ = new PutCh(pos, exp);
+    }
+    |
+    PUTARRAY '(' EXP ',' EXP ')' ';'
+    {
+        Exp* n = $3;
+        Exp* arr = $5;
+        $$ = new PutArray(pos, n, arr);
+    }
+    |
+    STARTTIME '(' ')' ';' { $$ = new Starttime(pos); }
+    |
+    STOPTIME '(' ')' ';' { $$ = new Stoptime(pos); }
+    ;
+
+
+
+
+// 表达式列表: ε | 表达式 表达式余表
+// EXPLIST: ε | EXP EXPREST
+EXPLIST: // empty
+    { $$ = new ExpList(); }
+    |
+    EXP EXPREST
+    {
+        ExpList* expList = $2;
+        expList->push_back($1);
+        rotate(expList->begin(), expList->end() - 1, expList->end());
+        $$ = expList;
+    }
+    ;
+
+// 表达式余表: ε | ',' 表达式 表达式余表
+// EXPREST: ε | ',' EXP EXPREST
+EXPREST: // empty
+    { $$ = new ExpList(); }
+    |
+    ',' EXP EXPREST
+    {
+        ExpList* expList = $3;
+        expList->push_back($2);
+        rotate(expList->begin(), expList->end() - 1, expList->end());
+        $$ = expList;
+    }
+    ;
+
+// 表达式
+// EXP -> '(' EXP ')'
+//      | '(' '{' STMLIST '}' EXP ')'
+//      | ID
+//      | NUM
+//      | TRUE | FALSE
+//      | EXP '[' EXP ']'
+//      | OP
+//      | EXP [+-*/ COMP && ||] EXP
+//      | [-!] EXP
+//      | THIS
+//      | EXP '.' ID '(' EXPLIST ')'
+//      | EXP '.' ID '(' ')'
+//      | EXP '.' ID
+//      | GETINT '(' ')'
+//      | GETCH '(' ')'
+//      | GETARRAY '(' EXP ')'
+//      | LENGTH '(' EXP ')'
+EXP: '(' EXP ')'
+    { $$ = $2; }
+    |
+    '(' '{' STMLIST '}' EXP ')'
+    {
+        vector<Stm*>* stmList = $3;
+        Exp* exp = $5;
+        $$ = new Esc(pos, stmList, exp);
+    }
+    |
+    ID { $$ = $1 }
+    |
+    NUM { $$ = new IntExp(pos, $1); }
+    |
+    TRUE { $$ = new BoolExp(pos, true); }
+    |
+    FALSE { $$ = new BoolExp(pos, false); }
+    |
+    EXP '[' EXP ']'
+    {
+        Exp* arr = $1;
+        Exp* index = $3;
+        $$ = new ArrayExp(pos, arr, index);
+    }
+    |
+    EXP ADD EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "+");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP MINUS EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "-");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP TIMES EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "*");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP DIVIDE EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "/");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP AND EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "&&");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP OR EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "||");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP EQ EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "==");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP NE EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "!=");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP LE EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "<=");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP LT EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, "<");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP GE EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, ">=");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    EXP GT EXP
+    {
+        Pos* opPos = Pos(@2.sline, @2.scolumn, @2.eline, @2.ecolumn);
+        OpExp* op = new OpExp(opPos, ">");
+        $$ = new BinaryOp(pos, $1, op, $3);
+    }
+    |
+    MINUS EXP %prec UMINUS
+    {
+        Pos* opPos = Pos(@1.sline, @1.scolumn, @1.eline, @1.ecolumn);
+        OpExp* op = new OpExp(opPos, "-");
+        $$ = new UnaryOp(pos, op, $2);
+    }
+    |
+    NOT EXP
+    {
+        Pos* opPos = Pos(@1.sline, @1.scolumn, @1.eline, @1.ecolumn);
+        OpExp* op = new OpExp(opPos, "!");
+        $$ = new UnaryOp(pos, op, $2);
+    }
+    |
+    THIS { $$ = new This(pos); }
+    |
+    EXP '.' ID '(' EXPLIST ')'
+    {
+        Exp* obj = $1;
+        IdExp* method = $3;
+        vector<Exp*>* param = $5;
+        $$ = new CallExp(pos, obj, method, param);
+    }
+    |
+    EXP '.' ID '(' ')'
+    {
+        Exp* obj = $1;
+        IdExp* method = $3;
+        $$ = new CallExp(pos, obj, method);
+    }
+    |
+    EXP '.' ID
+    {
+        Exp* obj = $1;
+        IdExp* id = $3;
+        $$ = new ClassVar(pos, obj, id);
+    }
+    |
+    GETINT '(' ')' { $$ = new GetInt(pos); }
+    |
+    GETCH '(' ')' { $$ = new GetCh(pos); }
+    |
+    GETARRAY '(' EXP ')' { $$ = new GetArray(pos, $3); }
+    |
+    LENGTH '(' EXP ')' { $$ = new Length(pos, $3); }
+    ;
 
 %%
-/*
-void yyerror(char *s) {
-  fprintf(stderr, "%s\n",s);
-}
 
-int yywrap() {
-  return(1);
-}
-*/
 
-//%code 
-namespace fdmj 
+namespace fdmj
 {
     template<typename RHS>
     inline void calcLocation(location_t &current, const RHS &rhs, const std::size_t n)
     {
-        current = location_t(YYRHSLOC(rhs, 1).sline, YYRHSLOC(rhs, 1).scolumn, 
-                                    YYRHSLOC(rhs, n).eline, YYRHSLOC(rhs, n).ecolumn);
-        p = new Pos(current.sline, current.scolumn, current.eline, current.ecolumn);
+        current = location_t(YYRHSLOC(rhs, 1).sline, 
+                             YYRHSLOC(rhs, 1).scolumn, 
+                             YYRHSLOC(rhs, n).eline, 
+                             YYRHSLOC(rhs, n).ecolumn);
+        pos = new Pos(current.sline, current.scolumn, current.eline, current.ecolumn);
     }
     
     void ASTParser::error(const location_t &location, const std::string &message)
     {
-        std::cerr << "Error at lines " << location << ": " << message << std::endl;
+        std::cerr << "ASTParser: Error at " << location << ": " << message << std::endl;
     }
 
-  Program* fdmjParser(ifstream &fp, const bool debug) {
-    fdmj:AST_YYSTYPE result; 
-    result.root = nullptr;
-    fdmj::ASTLexer lexer(fp, debug);
-    fdmj::ASTParser parser(lexer, debug, &result); //set up the parser
-    if (parser() ) { //call the parser
-      cout << "Error: parsing failed" << endl;
-      return nullptr;
-    }
-    if (debug) cout << "Parsing successful" << endl;
-    return result.root;
-  }
+    // 外部接口函数
+    Program* fdmjParser(ifstream &fp, const bool debug) {
+        fdmj:AST_YYSTYPE result; 
+        result.root = nullptr;
 
-  Program*  fdmjParser(const string &filename, const bool debug) {
-    std::ifstream fp(filename);
-    if (!fp) {
-      cout << "Error: cannot open file " << filename << endl;
-      return nullptr;
+        fdmj::ASTLexer lexer(fp, debug);
+        fdmj::ASTParser parser(lexer, debug, &result);
+        if (parser()) {
+            cout << "Error: parsing failed" << endl;
+            return nullptr;
+        }
+
+        if (debug) cout << "Parsing successful" << endl;
+        return result.root;
     }
-    return fdmjParser(fp, debug);
-  }
+
+    // 外部接口函数
+    Program* fdmjParser(const string &filename, const bool debug) {
+        std::ifstream fp(filename);
+        if (!fp) {
+            cout << "Error: cannot open file " << filename << endl;
+            return nullptr;
+        }
+        return fdmjParser(fp, debug);
+    }
 }
