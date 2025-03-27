@@ -6,78 +6,67 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <filesystem>
+#include <unistd.h>
 
 using namespace std;
 using namespace fdmj;
 using namespace tinyxml2;
 
 #define with_location_info false
-// false means no location info in the AST XML files
 
-Program *prog();
+Program* prog();
 
-int main(int argc, const char *argv[]) {
+int main(int argc, const char* argv[])
+{
+    // 切换到test目录
+    filesystem::path filePath(__FILE__);
+    filesystem::path directory = filePath.parent_path();
+    chdir(directory.c_str());
+    chdir("../../test");
+
     string file;
+    file = "example";
+    // file = argv[argc - 1];
 
-    const bool debug = argc > 1 && std::strcmp(argv[1], "--debug") == 0;
+    string file_fmj = file + ".fmj";
+    string file_ast = file + ".2.xml";
+    string file_ast_semant = file + ".2-semant.xml";
 
-    if ((!debug && argc != 2) || (debug && argc != 3)) {
-        cerr << "Usage: " << argv[0] << " [--debug] filename" << endl;
-        return EXIT_FAILURE;
-    }
-
-    file = argv[argc - 1];
-
-    // boilerplate output filenames (used throughout the compiler pipeline)
-    string file_fmj = file + ".fmj"; // input source file
-    string file_ast = file + ".2.ast";        // ast in xml
-    string file_ast_semant = file + ".2-semant.ast";
-
-    cout << "------Parsing fmj source file: " << file_fmj << "------------" << endl;
-    std::ifstream fmjfile(file_fmj);
-
-    Program *root = fdmjParser(fmjfile, false); // false means no debug info from parser
-
+    ifstream fmjfile(file_fmj);
+    Program* root = fdmjParser(fmjfile, false);
     if (root == nullptr) {
-        std::cout << "AST is not valid!" << endl;
+        cout << "AST无效!" << endl;
         return EXIT_FAILURE;
     }
 
-    cout << "Convert AST  to XML..." << endl;
-    XMLDocument *x = ast2xml(root, nullptr, with_location_info, false); // no semant info yet
+    cout << "将AST转换为XML文件: "<< file_ast << endl;
+    XMLDocument* x = ast2xml(root, nullptr, with_location_info, false); // no semant info yet
     x->SaveFile(file_ast.c_str());
-    std::cout << "Writing AST to file: " << file_ast << std::endl;
-
     if (x->Error()) {
-        std::cout << "AST is not valid!" << endl;
+        cout << "AST无效!" << endl;
         return EXIT_FAILURE;
     }
-    
-    //reloading from xml to AST
+
     delete root;
-    std::cout << "Read AST from file: " << file_ast << std::endl;
+    cout << "从XML文件读取AST: " << file_ast << endl;
     x->LoadFile(file_ast.c_str());
-    std::cout << "Converting XML to AST..." << std::endl;
     root = xml2ast(x->FirstChildElement());
-
     if (root == nullptr) {
-        std::cout << "AST from file is not valid!" << endl;
+        cout <<  "AST无效!" << endl;
         return EXIT_FAILURE;
     }
 
-    //Semantic analysis
-    std::cout << "Semantic analysis..." << std::endl;
-    std::cout << "--Making Name Maps..." << endl;
-    Name_Maps *name_maps = makeNameMaps(root); 
-    std::cout << "--Analyzing Semantics..." << endl;
-    AST_Semant_Map *semant_map = semant_analyze(root); 
+    // Semantic analysis
+    cout << "Semantic analysis..." << endl;
+    AST_Semant_Map* semant_map = semant_analyze(root);
 
     cout << "Convert AST to XML with Semantic Info..." << endl;
     x = ast2xml(root, semant_map, with_location_info, true); // no semant info yet
 
     if (x->Error()) {
-        std::cout << "AST is not valid when converting from AST with Semant Info!" << endl;
-        return EXIT_FAILURE;  
+        cout << "AST is not valid when converting from AST with Semant Info!" << endl;
+        return EXIT_FAILURE;
     }
 
     x->SaveFile(file_ast_semant.c_str());

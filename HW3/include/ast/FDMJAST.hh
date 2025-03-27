@@ -15,7 +15,7 @@ namespace fdmj {
 class Program : public AST {
 public:
     MainMethod* main;
-    vector<ClassDecl*>* cdl = new vector<ClassDecl*>();
+    vector<ClassDecl*>* cdl;
     Program(Pos* pos, MainMethod* main)
         : AST(pos)
         , main(main)
@@ -49,8 +49,8 @@ public:
 //          | PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
 class ClassDecl : public AST {
 public:
-    IdExp* id = nullptr;
-    IdExp* eid = nullptr; // nullptr if not assigned
+    IdExp* id;            // 类名
+    IdExp* eid = nullptr; // 父类名 nullable
     vector<VarDecl*>* vdl = new vector<VarDecl*>();
     vector<MethodDecl*>* mdl = new vector<MethodDecl*>();
     ClassDecl(Pos* pos, IdExp* id, vector<VarDecl*>* vdl, vector<MethodDecl*>* mdl)
@@ -177,6 +177,8 @@ public:
     void accept(AST_Visitor& v) override { v.visit(this); }
 };
 
+// 形参: 类型 变量名
+// FORMAL: TYPE ID
 class Formal : public AST {
 public:
     Type* type = nullptr;
@@ -561,15 +563,15 @@ public:
 // 表达式->this指针: this
 // EXP: THIS
 class This : public Exp {
-    public:
-        This(Pos* pos)
-            : Exp(pos) { };
-        ASTKind getASTKind() override { return ASTKind::This; }
-        This* clone() override;
-        void accept(AST_Visitor& v) override { v.visit(this); }
-    };
+public:
+    This(Pos* pos)
+        : Exp(pos) { };
+    ASTKind getASTKind() override { return ASTKind::This; }
+    This* clone() override;
+    void accept(AST_Visitor& v) override { v.visit(this); }
+};
 
-    // 表达式->类方法调用: 类对象.方法名(形参列表)
+// 表达式->类方法调用: 类对象.方法名(形参列表)
 // EXP: EXP '.' ID '(' EXPLIST ')'
 //    | EXP '.' ID '(' ')'
 class CallExp : public Exp {
@@ -609,8 +611,6 @@ public:
     void accept(AST_Visitor& v) override { v.visit(this); }
 };
 
-
-
 // 表达式->读取整数: getint()
 // EXP: GETINT '(' ')'
 class GetInt : public Exp {
@@ -646,19 +646,18 @@ public:
     void accept(AST_Visitor& v) override { v.visit(this); }
 };
 
-
 // 表达式->获取数组长度: length(数组表达式)
 // EXP: LENGTH '(' EXP ')'
 class Length : public Exp {
-    public:
-        Exp* exp = nullptr;
-        Length(Pos* pos, Exp* exp)
-            : Exp(pos)
-            , exp(exp) { };
-        ASTKind getASTKind() override { return ASTKind::Length; }
-        Length* clone() override;
-        void accept(AST_Visitor& v) override { v.visit(this); }
-    };
+public:
+    Exp* exp = nullptr;
+    Length(Pos* pos, Exp* exp)
+        : Exp(pos)
+        , exp(exp) { };
+    ASTKind getASTKind() override { return ASTKind::Length; }
+    Length* clone() override;
+    void accept(AST_Visitor& v) override { v.visit(this); }
+};
 
 } // namespace fdmj
 

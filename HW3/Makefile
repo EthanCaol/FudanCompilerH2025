@@ -13,7 +13,7 @@ build:
 
 clean:
 	@find $(TEST_DIR) -type f \( \
-		-name "*.ast" -o -name "*.out"\
+		-name "*.xml" -o -name "*.out"\
 		\) -exec $(RM) {} \;
 
 veryclean: clean 
