@@ -10,29 +10,24 @@
 using namespace std;
 using namespace fdmj;
 
-// this is for denote the semantic information of an AST node
-// mostly for expressions and variables.
-// Useful for type checking and IR (tree) generation
 class AST_Semant {
 public:
+    // Value: 值 typeKind lvalue
+    // MethodName: 方法名称
+    // ClassName: 类名
     enum Kind { Value, MethodName, ClassName };
-    // Value - a value, has a typeKind (any calculation result)
-    // MethodName - a method name, has a typeKind (need: class id)
-    // ClassName - a class name, has a typeKind (need class id)
-    // ClassVarName - a class variable name (type determined by class)
+
 private:
     Kind s_kind;
-    TypeKind typeKind;                        // enum class TypeKind {CLASS/OBJECT = 0, INT = 1, ARRAY = 2};
-    variant<monostate, string, int> type_par; // string for class name, int for array arity
-    bool lvalue;                              // if the expression is an lvalue
+    TypeKind typeKind;                        // Type类型 {CLASS=0, INT=1, ARRAY=2}
+    variant<monostate, string, int> type_par; // 类名<string> | 数组元数<int>
+    bool lvalue;                              // 是否为左值
 public:
     AST_Semant(AST_Semant::Kind s_kind, TypeKind typeKind, variant<monostate, string, int> type_par, bool lvalue)
         : s_kind(s_kind)
         , typeKind(typeKind)
         , type_par(type_par)
-        , lvalue(lvalue)
-    {
-    }
+        , lvalue(lvalue) { };
     Kind get_kind() { return s_kind; }
     TypeKind get_type() { return typeKind; }
     variant<monostate, string, int> get_type_par() { return type_par; }
@@ -81,17 +76,28 @@ public:
 
 class AST_Semant_Visitor : public AST_Visitor {
 private:
-    AST_Semant_Map* semant_map;
     Name_Maps* const name_maps;
+    AST_Semant_Map* semant_map;
+
+    string current_class_name;
+    string current_method_name;
+    bool is_in_while = false;
+
+    string fetch_class_name;
+    bool is_fetch_class = false;
+    bool is_fetch_class_var = false;
+    bool is_fetch_class_method = false;
 
 public:
-    // Change this constructor if more members are added above (if necessary)
     AST_Semant_Visitor(Name_Maps* name_maps)
         : name_maps(name_maps)
-    {
-        semant_map = new AST_Semant_Map();
-    }
+        , semant_map(new AST_Semant_Map()) { };
     AST_Semant_Map* getSemantMap() { return semant_map; }
+
+    bool is_assignable(Type* left, AST_Semant* right);
+    bool is_assignable(AST_Semant* left, AST_Semant* right);
+    bool is_class(AST_Semant* obj_semant);
+    AST_Semant* build_semant(Type* type, bool is_lvalue = true);
 
     void visit(Program* node) override;
     void visit(MainMethod* node) override;
@@ -100,6 +106,8 @@ public:
     void visit(VarDecl* node) override;
     void visit(MethodDecl* node) override;
     void visit(Formal* node) override;
+
+    // 语句
     void visit(Nested* node) override;
     void visit(If* node) override;
     void visit(While* node) override;
@@ -113,21 +121,23 @@ public:
     void visit(PutArray* node) override;
     void visit(Starttime* node) override;
     void visit(Stoptime* node) override;
+
+    // 表达式
+    void visit(Esc* node) override;
+    void visit(IdExp* node) override;
+    void visit(IntExp* node) override;
+    void visit(BoolExp* node) override;
+    void visit(ArrayExp* node) override;
+    void visit(OpExp* node) override;
     void visit(BinaryOp* node) override;
     void visit(UnaryOp* node) override;
-    void visit(ArrayExp* node) override;
+    void visit(This* node) override;
     void visit(CallExp* node) override;
     void visit(ClassVar* node) override;
-    void visit(BoolExp* node) override;
-    void visit(This* node) override;
-    void visit(Length* node) override;
-    void visit(Esc* node) override;
     void visit(GetInt* node) override;
     void visit(GetCh* node) override;
     void visit(GetArray* node) override;
-    void visit(IdExp* node) override;
-    void visit(OpExp* node) override;
-    void visit(IntExp* node) override;
+    void visit(Length* node) override;
 };
 
 Name_Maps* makeNameMaps(Program* node);

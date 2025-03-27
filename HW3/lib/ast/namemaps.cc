@@ -91,13 +91,23 @@ bool Name_Maps::is_method(string class_name, string method_name)
     return methods.find(p) != methods.end();
 }
 
-bool Name_Maps::add_method(string class_name, string method_name)
+bool Name_Maps::add_method(string class_name, string method_name, Type* type)
 {
+    pair<string, string> p(class_name, method_name);
     if (Name_Maps::is_method(class_name, method_name)) {
         return false;
     }
-    methods.insert(pair<string, string>(class_name, method_name));
+    methods[p] = type;
     return true;
+}
+
+Type* Name_Maps::get_method_type(string class_name, string method_name)
+{
+    if (!Name_Maps::is_method(class_name, method_name)) {
+        return nullptr;
+    }
+    pair<string, string> p(class_name, method_name);
+    return methods[p];
 }
 
 bool Name_Maps::is_class_var(string class_name, string var_name)
@@ -187,7 +197,7 @@ vector<Formal*>* Name_Maps::get_method_formal_list(string class_name, string met
     if (methodFormalList.find(p) == methodFormalList.end()) {
         return nullptr;
     }
-    vector<string> vl = methodFormalList[pair<string, string>(class_name, method_name)];
+    vector<string> vl = methodFormalList[p];
     for (auto v : vl) {
         if (Name_Maps::is_method_formal(class_name, method_name, v)) {
             fl->push_back(Name_Maps::get_method_formal(class_name, method_name, v));
@@ -213,7 +223,7 @@ void Name_Maps::print()
     cout << endl;
     cout << "Methods: ";
     for (auto m : methods) {
-        cout << m.first << "->" << m.second << " ; ";
+        cout << m.first.first << "->" << m.first.second << " ; ";
     }
     cout << endl;
     cout << "Class Variables: ";

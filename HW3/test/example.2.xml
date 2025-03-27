@@ -91,20 +91,6 @@
                                     <IdExp id="m1"/>
                                     <ParList>
                                         <IdExp id="i"/>
-                                        <IdExp id="j"/>
-                                        <IdExp id="k"/>
-                                        <BinaryOp>
-                                            <UnaryOp>
-                                                <OpExp op="-"/>
-                                                <IntExp val="2"/>
-                                            </UnaryOp>
-                                            <OpExp op="*"/>
-                                            <IntExp val="2"/>
-                                        </BinaryOp>
-                                        <UnaryOp>
-                                            <OpExp op="-"/>
-                                            <IntExp val="4"/>
-                                        </UnaryOp>
                                     </ParList>
                                 </CallExp>
                             </Assign>
@@ -164,7 +150,13 @@
         <ClassDecl>
             <IdExp id="c2"/>
             <ExtendsId eid="c1"/>
-            <VarDeclList/>
+            <VarDeclList>
+                <VarDecl>
+                    <Type typeKind="INT"/>
+                    <IdExp id="i1"/>
+                    <IntInit val="3"/>
+                </VarDecl>
+            </VarDeclList>
             <MethodDeclList>
                 <MethodDecl>
                     <Type typeKind="INT"/>

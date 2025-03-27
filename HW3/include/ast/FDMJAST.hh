@@ -16,10 +16,6 @@ class Program : public AST {
 public:
     MainMethod* main;
     vector<ClassDecl*>* cdl;
-    Program(Pos* pos, MainMethod* main)
-        : AST(pos)
-        , main(main)
-        , cdl(nullptr) { };
     Program(Pos* pos, MainMethod* main, vector<ClassDecl*>* cdl)
         : AST(pos)
         , main(main)
@@ -49,13 +45,14 @@ public:
 //          | PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
 class ClassDecl : public AST {
 public:
-    IdExp* id;            // 类名
-    IdExp* eid = nullptr; // 父类名 nullable
-    vector<VarDecl*>* vdl = new vector<VarDecl*>();
-    vector<MethodDecl*>* mdl = new vector<MethodDecl*>();
+    IdExp* id;
+    IdExp* eid; // 可能为空指针
+    vector<VarDecl*>* vdl;
+    vector<MethodDecl*>* mdl;
     ClassDecl(Pos* pos, IdExp* id, vector<VarDecl*>* vdl, vector<MethodDecl*>* mdl)
         : AST(pos)
         , id(id)
+        , eid(nullptr)
         , vdl(vdl)
         , mdl(mdl) { };
     ClassDecl(Pos* pos, IdExp* id, IdExp* eid, vector<VarDecl*>* vdl, vector<MethodDecl*>* mdl)
@@ -74,8 +71,8 @@ public:
 class Type : public AST {
 public:
     TypeKind typeKind;
-    IdExp* cid = nullptr;    // class id
-    IntExp* arity = nullptr; // array arity
+    IdExp* cid;    // 可能为空指针
+    IntExp* arity; // 可能为空指针
     Type(Pos* pos)
         : AST(pos)
         , typeKind(TypeKind::INT) { };
@@ -107,8 +104,8 @@ public:
 //        | INT '[' NUM ']' ID '=' '{' CONSTLIST '}' ';'
 class VarDecl : public AST {
 public:
-    Type* type = nullptr;
-    IdExp* id = nullptr;
+    Type* type;
+    IdExp* id;
     variant<monostate, IntExp*, vector<IntExp*>*> init;
     // note that nullptr means no init. vector.size=0 means empty array initialization
     VarDecl(Pos* pos, Type* type, IdExp* id)
@@ -140,37 +137,17 @@ public:
 // METHODDECL: PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
 class MethodDecl : public AST {
 public:
-    Type* type = nullptr;
-    IdExp* id = nullptr; // id expression
-    vector<Formal*>* fl = new vector<Formal*>();
-    vector<VarDecl*>* vdl = new vector<VarDecl*>();
-    vector<Stm*>* sl = new vector<Stm*>();
+    Type* type;
+    IdExp* id;
+    vector<Formal*>* fl;
+    vector<VarDecl*>* vdl;
+    vector<Stm*>* sl;
     MethodDecl(Pos* pos, Type* type, IdExp* id, vector<Formal*>* fl, vector<VarDecl*>* vdl, vector<Stm*>* sl)
         : AST(pos)
         , type(type)
         , id(id)
         , fl(fl)
         , vdl(vdl)
-        , sl(sl) { };
-    MethodDecl(Pos* pos, Type* type, IdExp* id, vector<VarDecl*>* vdl, vector<Stm*>* sl)
-        : // without formalList
-        AST(pos)
-        , type(type)
-        , id(id)
-        , vdl(vdl)
-        , sl(sl) { };
-    MethodDecl(Pos* pos, Type* type, IdExp* id, vector<Formal*>* fl, vector<Stm*>* sl)
-        : // without varDeclList
-        AST(pos)
-        , type(type)
-        , id(id)
-        , fl(fl)
-        , sl(sl) { };
-    MethodDecl(Pos* pos, Type* type, IdExp* id, vector<Stm*>* sl)
-        : // without formalList and varDeclList
-        AST(pos)
-        , type(type)
-        , id(id)
         , sl(sl) { };
     ASTKind getASTKind() override { return ASTKind::MethodDecl; }
     MethodDecl* clone() override;
@@ -181,8 +158,8 @@ public:
 // FORMAL: TYPE ID
 class Formal : public AST {
 public:
-    Type* type = nullptr;
-    IdExp* id = nullptr;
+    Type* type;
+    IdExp* id;
     Formal(Pos* pos, Type* type, IdExp* id)
         : AST(pos)
         , type(type)
@@ -243,9 +220,9 @@ public:
 //    | IF '(' EXP ')' STM
 class If : public Stm {
 public:
-    Exp* exp = nullptr;
-    Stm* stm1 = nullptr;
-    Stm* stm2 = nullptr; // else part, could be empty
+    Exp* exp;
+    Stm* stm1;
+    Stm* stm2; // 可能为空指针
     If(Pos* pos, Exp* exp, Stm* stm1, Stm* stm2)
         : Stm(pos)
         , exp(exp)
@@ -266,8 +243,8 @@ public:
 //    | WHILE '(' EXP ')' ';'
 class While : public Stm {
 public:
-    Exp* exp = nullptr;
-    Stm* stm = nullptr;
+    Exp* exp;
+    Stm* stm; // 可能为空指针
     While(Pos* pos, Exp* exp, Stm* stm)
         : Stm(pos)
         , exp(exp)
@@ -285,8 +262,8 @@ public:
 // STM: EXP '=' EXP ';'
 class Assign : public Stm {
 public:
-    Exp* left = nullptr;
-    Exp* exp = nullptr;
+    Exp* left;
+    Exp* exp;
     Assign(Pos* pos, Exp* left, Exp* exp)
         : Stm(pos)
         , left(left)
@@ -298,23 +275,17 @@ public:
 
 // 语句->类方法调用语句: 类对象.方法名(形参列表);
 // STM: EXP '.' ID '(' EXPLIST ')' ';'
-//    | EXP '.' ID '(' ')' ';'
 class CallStm : public Stm {
 public:
-    Exp* obj = nullptr;
-    IdExp* name = nullptr;
-    vector<Exp*>* par = new vector<Exp*>();
+    Exp* obj;
+    IdExp* name;
+    vector<Exp*>* par;
 
     CallStm(Pos* pos, Exp* obj, IdExp* name, vector<Exp*>* par)
         : Stm(pos)
         , obj(obj)
         , name(name)
         , par(par) { };
-    CallStm(Pos* pos, Exp* obj, IdExp* name)
-        : Stm(pos)
-        , obj(obj)
-        , name(name)
-        , par(nullptr) { };
 
     ASTKind getASTKind() override { return ASTKind::CallStm; }
     CallStm* clone() override;
@@ -347,7 +318,7 @@ public:
 // STM: RETURN EXP ';'
 class Return : public Stm {
 public:
-    Exp* exp = nullptr;
+    Exp* exp;
     Return(Pos* pos, Exp* exp)
         : Stm(pos)
         , exp(exp) { };
@@ -360,7 +331,7 @@ public:
 // STM: PUTINT '(' EXP ')' ';'
 class PutInt : public Stm {
 public:
-    Exp* exp = nullptr;
+    Exp* exp;
     PutInt(Pos* pos, Exp* exp)
         : Stm(pos)
         , exp(exp) { };
@@ -373,7 +344,7 @@ public:
 // STM: PUTCH '(' EXP ')' ';'
 class PutCh : public Stm {
 public:
-    Exp* exp = nullptr;
+    Exp* exp;
 
     PutCh(Pos* pos, Exp* exp)
         : Stm(pos)
@@ -387,8 +358,8 @@ public:
 // STM: PUTARRAY '(' EXP ',' EXP ')' ';'
 class PutArray : public Stm {
 public:
-    Exp* n = nullptr;   // 打印长度
-    Exp* arr = nullptr; // 数组
+    Exp* n;   // 打印长度
+    Exp* arr; // 数组
 
     PutArray(Pos* pos, Exp* n, Exp* arr)
         : Stm(pos)
@@ -449,8 +420,8 @@ public:
 // EXP: '(' '{' STMLIST '}' EXP ')'
 class Esc : public Exp {
 public:
-    vector<Stm*>* sl = new vector<Stm*>();
-    Exp* exp = nullptr;
+    vector<Stm*>* sl;
+    Exp* exp;
 
     Esc(Pos* pos, vector<Stm*>* sl, Exp* exp)
         : Exp(pos)
@@ -504,8 +475,8 @@ public:
 // EXP: EXP '[' EXP ']'
 class ArrayExp : public Exp {
 public:
-    Exp* arr = nullptr;
-    Exp* index = nullptr;
+    Exp* arr;
+    Exp* index;
     ArrayExp(Pos* pos, Exp* arr, Exp* index)
         : Exp(pos)
         , arr(arr)
@@ -532,9 +503,9 @@ public:
 // EXP: EXP OP EXP
 class BinaryOp : public Exp {
 public:
-    Exp* left = nullptr;
-    OpExp* op = nullptr;
-    Exp* right = nullptr;
+    Exp* left;
+    OpExp* op;
+    Exp* right;
     BinaryOp(Pos* pos, Exp* left, OpExp* op, Exp* right)
         : Exp(pos)
         , left(left)
@@ -549,8 +520,8 @@ public:
 // EXP: '!' EXP | '-' EXP
 class UnaryOp : public Exp {
 public:
-    OpExp* op = nullptr;
-    Exp* exp = nullptr;
+    OpExp* op;
+    Exp* exp;
     UnaryOp(Pos* pos, OpExp* op, Exp* exp)
         : Exp(pos)
         , op(op)
@@ -571,36 +542,11 @@ public:
     void accept(AST_Visitor& v) override { v.visit(this); }
 };
 
-// 表达式->类方法调用: 类对象.方法名(形参列表)
-// EXP: EXP '.' ID '(' EXPLIST ')'
-//    | EXP '.' ID '(' ')'
-class CallExp : public Exp {
-public:
-    Exp* obj = nullptr;
-    IdExp* name = nullptr;
-    vector<Exp*>* par = new vector<Exp*>();
-
-    CallExp(Pos* pos, Exp* obj, IdExp* name, vector<Exp*>* par)
-        : Exp(pos)
-        , obj(obj)
-        , name(name)
-        , par(par) { };
-    CallExp(Pos* pos, Exp* obj, IdExp* name)
-        : Exp(pos)
-        , obj(obj)
-        , name(name)
-        , par(nullptr) { };
-    ASTKind getASTKind() override { return ASTKind::CallExp; }
-    CallExp* clone() override;
-    void accept(AST_Visitor& v) override { v.visit(this); }
-};
-
-// 表达式->类变量访问: 类对象.变量名
 // EXP: EXP '.' ID
 class ClassVar : public Exp {
 public:
-    Exp* obj = nullptr;
-    IdExp* id = nullptr;
+    Exp* obj;
+    IdExp* id;
 
     ClassVar(Pos* pos, Exp* obj, IdExp* id)
         : Exp(pos)
@@ -610,6 +556,26 @@ public:
     ClassVar* clone() override;
     void accept(AST_Visitor& v) override { v.visit(this); }
 };
+
+// 表达式->类方法调用: 类对象.方法名(形参列表)
+// EXP: EXP '.' ID '(' EXPLIST ')'
+class CallExp : public Exp {
+public:
+    Exp* obj;
+    IdExp* name;
+    vector<Exp*>* par;
+
+    CallExp(Pos* pos, Exp* obj, IdExp* name, vector<Exp*>* par)
+        : Exp(pos)
+        , obj(obj)
+        , name(name)
+        , par(par) { };
+    ASTKind getASTKind() override { return ASTKind::CallExp; }
+    CallExp* clone() override;
+    void accept(AST_Visitor& v) override { v.visit(this); }
+};
+
+// 表达式->类变量访问: 类对象.变量名
 
 // 表达式->读取整数: getint()
 // EXP: GETINT '(' ')'
@@ -637,7 +603,7 @@ public:
 // EXP: GETARRAY '(' EXP ')'
 class GetArray : public Exp {
 public:
-    Exp* exp = nullptr;
+    Exp* exp;
     GetArray(Pos* pos, Exp* exp)
         : Exp(pos)
         , exp(exp) { };
@@ -650,7 +616,7 @@ public:
 // EXP: LENGTH '(' EXP ')'
 class Length : public Exp {
 public:
-    Exp* exp = nullptr;
+    Exp* exp;
     Length(Pos* pos, Exp* exp)
         : Exp(pos)
         , exp(exp) { };

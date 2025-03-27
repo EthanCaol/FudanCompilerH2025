@@ -14,10 +14,11 @@ private:
     set<string> classes;               // 类名集合
     map<string, string> classHierachy; // 类->父类
 
-    set<pair<string, string>> methods;                          // 类方法集合
-    map<pair<string, string>, VarDecl*> classVar;               // 类成员变量 -> 声明节点
-    map<tuple<string, string, string>, VarDecl*> methodVar;     // 类方法变量 -> 声明节点
-    map<tuple<string, string, string>, Formal*> methodFormal;   // 类方法参数 -> 参数节点
+    // set<pair<string, string>> methods;                       // 类方法集合
+    map<pair<string, string>, Type*> methods;                   // 类方法    -> 方法返回类型
+    map<pair<string, string>, VarDecl*> classVar;               // 类成员变量 -> 声明结点
+    map<tuple<string, string, string>, VarDecl*> methodVar;     // 类方法变量 -> 声明结点
+    map<tuple<string, string, string>, Formal*> methodFormal;   // 类方法参数 -> 参数结点
     map<pair<string, string>, vector<string>> methodFormalList; // 类方法名   -> 参数名列表
 public:
     // 类
@@ -27,9 +28,9 @@ public:
     set<string> get_ancestors(string class_name);                   // 获取类的所有祖先类
 
     // 类->方法
-    bool is_method(string class_name, string method_name);  // 判断是否为类方法
-    bool add_method(string class_name, string method_name); // 添加类方法
-    // MethodDecl* get_method(string method_name, string class_name);
+    bool is_method(string class_name, string method_name);              // 判断是否为类方法
+    bool add_method(string class_name, string method_name, Type* type); // 添加类方法
+    Type* get_method_type(string class_name, string method_name);       // 获取类方法类型
 
     // 类->成员变量
     bool is_class_var(string class_name, string var_name);               // 判断是否为类成员变量
@@ -67,42 +68,42 @@ public:
     void visit(Program* node) override;
     void visit(MainMethod* node) override;
     void visit(ClassDecl* node) override;
-    void visit(Type* node) override { return; }
+    void visit(Type* node) override { }
     void visit(VarDecl* node) override;
     void visit(MethodDecl* node) override;
     void visit(Formal* node) override;
 
     // 语句
-    void visit(Nested* node) override { return; }
-    void visit(If* node) override { return; }
-    void visit(While* node) override { return; }
-    void visit(Assign* node) override { return; }
-    void visit(CallStm* node) override { return; }
-    void visit(Continue* node) override { return; }
-    void visit(Break* node) override { return; }
-    void visit(Return* node) override { return; }
-    void visit(PutInt* node) override { return; }
-    void visit(PutCh* node) override { return; }
-    void visit(PutArray* node) override { return; }
-    void visit(Starttime* node) override { return; }
-    void visit(Stoptime* node) override { return; }
+    void visit(Nested* node) override { }
+    void visit(If* node) override { }
+    void visit(While* node) override { }
+    void visit(Assign* node) override { }
+    void visit(CallStm* node) override { }
+    void visit(Continue* node) override { }
+    void visit(Break* node) override { }
+    void visit(Return* node) override { }
+    void visit(PutInt* node) override { }
+    void visit(PutCh* node) override { }
+    void visit(PutArray* node) override { }
+    void visit(Starttime* node) override { }
+    void visit(Stoptime* node) override { }
 
     // 表达式
-    void visit(Esc* node) override { return; }
-    void visit(IdExp* node) override { return; }
-    void visit(IntExp* node) override { return; }
-    void visit(BoolExp* node) override { return; }
-    void visit(ArrayExp* node) override { return; }
-    void visit(OpExp* node) override { return; }
-    void visit(BinaryOp* node) override { return; }
-    void visit(UnaryOp* node) override { return; }
-    void visit(This* node) override { return; }
-    void visit(CallExp* node) override { return; }
-    void visit(ClassVar* node) override { return; }
-    void visit(GetInt* node) override { return; }
-    void visit(GetCh* node) override { return; }
-    void visit(GetArray* node) override { return; }
-    void visit(Length* node) override { return; }
+    void visit(Esc* node) override { }
+    void visit(IdExp* node) override { }
+    void visit(IntExp* node) override { }
+    void visit(BoolExp* node) override { }
+    void visit(ArrayExp* node) override { }
+    void visit(OpExp* node) override { }
+    void visit(BinaryOp* node) override { }
+    void visit(UnaryOp* node) override { }
+    void visit(This* node) override { }
+    void visit(CallExp* node) override { }
+    void visit(ClassVar* node) override { }
+    void visit(GetInt* node) override { }
+    void visit(GetCh* node) override { }
+    void visit(GetArray* node) override { }
+    void visit(Length* node) override { }
 };
 
 // 对外接口函数
