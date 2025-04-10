@@ -28,10 +28,6 @@ tree::Program* ast2tree(fdmj::Program* prog, AST_Semant_Map* semant_map)
     return visitor.getTree();
 }
 
-// 1. 调用accept(visit)
-// 2. 记录下层newNode
-// 3. 更新本层newNode
-
 // 程序: 主方法 类声明列表
 // PROG: MAINMETHOD CLASSDECLLIST
 void ASTToTreeVisitor::visit(fdmj::Program* node)
@@ -52,8 +48,6 @@ void ASTToTreeVisitor::visit(fdmj::Program* node)
 // FunctionDeclaration Blocks Block Statements
 void ASTToTreeVisitor::visit(fdmj::MainMethod* node)
 {
-    // fdmj::Formal* return_formal = semant_map->getNameMaps()->get_method_formal(class_name, method_name, "_^return^_" + method_name);
-
     method_name = "main";
 
     // 形参列表
@@ -178,13 +172,15 @@ void ASTToTreeVisitor::visit(fdmj::If* node)
 
     // exp_cx:
     //   True_patch_list: *L1
-    //   False_path_list: *L2
+    //   False_patch_list: *L2
     // If:
-    //   True_patch_list: *L3
-    //   False_path_list: *L2, L4
-    //   Tr_cx1.stm [L5 patches L1]
-    //   L5:
-    //   Tr_cx2.stm
+    //   exp_cx.stm
+    //   L_true [L1]
+    //   stm1
+    //   Jump L_end
+    //   L_false [L2]
+    //   stm2
+    //   L_end
 
     auto L1 = exp_cx->true_list;
     auto L2 = exp_cx->false_list;
@@ -223,6 +219,18 @@ void ASTToTreeVisitor::visit(fdmj::While* node)
 {
     node->exp->accept(*this);
     auto exp_cx = newExp->unCx(&temp_map);
+
+    // exp_cx:
+    //   True_patch_list: *L1
+    //   False_patch_list: *L2
+    // While:
+    //   L_while
+    //   exp_cx.stm
+    //   L_true [L1]
+    //   stm
+    //   Jump L_while
+    //   L_end [L2]
+
     auto L1 = exp_cx->true_list;
     auto L2 = exp_cx->false_list;
 
@@ -286,7 +294,17 @@ void ASTToTreeVisitor::visit(fdmj::Return* node)
 
 // 语句->打印整数语句: putint(表达式);
 // STM: PUTINT '(' EXP ')' ';'
-void ASTToTreeVisitor::visit(fdmj::PutInt* node) { }
+void ASTToTreeVisitor::visit(fdmj::PutInt* node)
+{
+    node->exp->accept(*this);
+    auto exp = newExp->unEx(&temp_map)->exp;
+
+    auto args = new vector<tree::Exp*>();
+    args->push_back(exp);
+
+    auto ext_call = new tree::ExtCall(tree::Type::INT, "putint", args);
+    newNode = new tree::ExpStm(ext_call);
+}
 
 // 语句->打印字符语句: putch(表达式);
 // STM: PUTCH '(' EXP ')' ';'
@@ -308,11 +326,21 @@ void ASTToTreeVisitor::visit(fdmj::PutArray* node) { }
 
 // 语句->开始计时语句: starttime();
 // STM: STARTTIME '(' ')' ';'
-void ASTToTreeVisitor::visit(fdmj::Starttime* node) { }
+void ASTToTreeVisitor::visit(fdmj::Starttime* node)
+{
+    auto args = new vector<tree::Exp*>();
+    auto ext_call = new tree::ExtCall(tree::Type::INT, "starttime", args);
+    newNode = new tree::ExpStm(ext_call);
+}
 
 // 语句->停止计时语句: stoptime();
 // STM: STOPTIME '(' ')' ';'
-void ASTToTreeVisitor::visit(fdmj::Stoptime* node) { }
+void ASTToTreeVisitor::visit(fdmj::Stoptime* node)
+{
+    auto args = new vector<tree::Exp*>();
+    auto ext_call = new tree::ExtCall(tree::Type::INT, "stoptime", args);
+    newNode = new tree::ExpStm(ext_call);
+}
 
 // 表达式
 // EXP -> '(' EXP ')'
@@ -423,13 +451,13 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
 
     // Tr_cx1:
     //   True_patch_list: *L1
-    //   False_path_list: *L2
+    //   False_patch_list: *L2
     // Tr_cx2:
     //   True_patch_list: *L3
-    //   False_path_list: *L4
+    //   False_patch_list: *L4
     // Tr_cx3:
     //   True_patch_list: *L1, *L3
-    //   False_path_list: *L4
+    //   False_patch_list: *L4
     //   Tr_cx1.stm [L5 patches L2]
     //   L5:
     //   Tr_cx2.stm
@@ -460,13 +488,13 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
 
     // Tr_cx1:
     //   True_patch_list: *L1
-    //   False_path_list: *L2
+    //   False_patch_list: *L2
     // Tr_cx2:
     //   True_patch_list: *L3
-    //   False_path_list: *L4
+    //   False_patch_list: *L4
     // Tr_cx3:
     //   True_patch_list: *L3
-    //   False_path_list: *L2, L4
+    //   False_patch_list: *L2, L4
     //   Tr_cx1.stm [L5 patches L1]
     //   L5:
     //   Tr_cx2.stm
@@ -498,7 +526,25 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
 
 // 表达式->一元操作: OP 表达式
 // EXP: '!' EXP | '-' EXP
-void ASTToTreeVisitor::visit(fdmj::UnaryOp* node) { }
+void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
+{
+    string op = node->op->op;
+
+    node->exp->accept(*this);
+    auto exp_tr = newExp;
+
+    if (op == "-") {
+        auto exp = exp_tr->unEx(&temp_map)->exp;
+        newExp = new Tr_ex(new tree::Binop(tree::Type::INT, "-", new tree::Const(0), exp));
+    } else if (op == "!") {
+        auto exp = exp_tr->unCx(&temp_map);
+        auto L1 = exp->true_list;
+        auto L2 = exp->false_list;
+
+        // 交换L1和L2
+        newExp = new Tr_cx(L2, L1, exp->stm);
+    }
+}
 
 // 表达式->this指针: this
 // EXP: THIS
@@ -514,7 +560,10 @@ void ASTToTreeVisitor::visit(fdmj::CallExp* node) { }
 
 // 表达式->读取整数: getint()
 // EXP: GETINT '(' ')'
-void ASTToTreeVisitor::visit(fdmj::GetInt* node) { }
+void ASTToTreeVisitor::visit(fdmj::GetInt* node)
+{
+
+}
 
 // 表达式->读取字符: getch()
 // EXP: GETCH '(' ')'

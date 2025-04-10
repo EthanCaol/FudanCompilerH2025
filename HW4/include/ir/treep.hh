@@ -83,9 +83,7 @@ class Program : public Tree {
 public:
     vector<tree::FuncDecl*>* funcdecllist;
     Program(vector<tree::FuncDecl*>* funcdecllist)
-        : funcdecllist(funcdecllist)
-    {
-    }
+        : funcdecllist(funcdecllist) { };
     Kind getTreeKind() { return Kind::PROGRAM; }
     void accept(Visitor& v) { v.visit(this); }
 };
