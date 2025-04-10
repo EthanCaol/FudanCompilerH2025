@@ -18,6 +18,8 @@
                                     <Const value="0"/>
                                 </Move>
                                 <Sequence>
+
+                                    <!-- 1+2*3 > 3 -->
                                     <CJump relop="&gt;" true="108" false="107">
                                         <BinOp op="+">
                                             <Const value="1"/>
@@ -28,6 +30,8 @@
                                         </BinOp>
                                         <Const value="3"/>
                                     </CJump>
+
+
                                     <Label label="107"/>
                                     <Sequence>
                                         <CJump relop="!=" true="104" false="109">

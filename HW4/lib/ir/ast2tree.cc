@@ -174,10 +174,10 @@ void ASTToTreeVisitor::visit(fdmj::While* node) { }
 void ASTToTreeVisitor::visit(fdmj::Assign* node)
 {
     node->left->accept(*this);
-    auto left = static_cast<tree::Exp*>(newNode);
+    auto left = newExp->unEx(&temp_map)->exp;
 
     node->exp->accept(*this);
-    auto exp = static_cast<tree::Exp*>(newNode);
+    auto exp = newExp->unEx(&temp_map)->exp;
 
     newNode = new tree::Move(left, exp);
 }
@@ -199,8 +199,8 @@ void ASTToTreeVisitor::visit(fdmj::Break* node) { }
 void ASTToTreeVisitor::visit(fdmj::Return* node)
 {
     node->exp->accept(*this);
-    auto exp = static_cast<tree::Exp*>(newNode);
-    newNode = new tree::Return(exp);
+    auto exp = newExp->unEx(&temp_map)->exp;
+    newExp = new Tr_ex(exp);
 }
 
 // 语句->打印整数语句: putint(表达式);
@@ -255,7 +255,7 @@ void ASTToTreeVisitor::visit(fdmj::Esc* node)
 void ASTToTreeVisitor::visit(fdmj::IdExp* node)
 {
     auto temp = method_var_table.get_var_temp(node->id);
-    newNode = new tree::TempExp(tree::Type::INT, temp);
+    newExp = new Tr_ex(new tree::TempExp(tree::Type::INT, temp));
 }
 
 // 表达式->整数: num
@@ -263,7 +263,7 @@ void ASTToTreeVisitor::visit(fdmj::IdExp* node)
 void ASTToTreeVisitor::visit(fdmj::IntExp* node)
 {
     auto val = node->val;
-    newNode = new tree::Const(val);
+    newExp = new Tr_ex(new tree::Const(val));
 }
 
 // 表达式->布尔常量: true | false
@@ -271,7 +271,7 @@ void ASTToTreeVisitor::visit(fdmj::IntExp* node)
 void ASTToTreeVisitor::visit(fdmj::BoolExp* node)
 {
     auto val = node->val;
-    newNode = new tree::Const(val);
+    newExp = new Tr_ex(new tree::Const(val));
 }
 
 // 表达式->数组访问: 数组表达式[下标表达式]
@@ -289,12 +289,37 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
     string op = node->op->op;
 
     node->left->accept(*this);
-    auto left = static_cast<tree::Exp*>(newNode);
+    auto left = newExp->unEx(&temp_map)->exp;
 
     node->right->accept(*this);
-    auto right = static_cast<tree::Exp*>(newNode);
+    auto right = newExp->unEx(&temp_map)->exp;
 
-    newNode = new tree::Binop(tree::Type::INT, op, left, right);
+    // 算数运算
+    vector<string> algo_op = { "+", "-", "*", "/" };
+    if (find(algo_op.begin(), algo_op.end(), op) != algo_op.end()) {
+        newExp = new Tr_ex(new tree::Binop(tree::Type::INT, op, left, right));
+        return;
+    }
+
+    // 比较运算
+    vector<string> logic_op = { "==", "!=", "<", ">", "<=", ">=" };
+    if (find(logic_op.begin(), logic_op.end(), op) != logic_op.end()) {
+        // 构造CJump
+        Label* t = temp_map.named_label(-1);
+        Label* f = temp_map.named_label(-2);
+        auto cjump = new tree::Cjump(op, left, right, t, f);
+
+        // 添加修补列表
+        auto true_list = new Patch_list();
+        auto false_list = new Patch_list();
+        true_list->add_patch(t);
+        false_list->add_patch(f);
+        newExp = new Tr_cx(true_list, false_list, cjump);
+        return;
+    }
+
+    // 逻辑运算
+    
 }
 
 // 表达式->一元操作: OP 表达式

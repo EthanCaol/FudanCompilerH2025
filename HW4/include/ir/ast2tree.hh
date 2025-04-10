@@ -68,12 +68,13 @@ public:
 
     tree::Program* tree_root = nullptr; // 根节点
     Temp_map temp_map;                  // 临时变量与标签映射表
-    Class_table* class_table;            // 类表
+    Class_table* class_table;           // 类表
     Method_var_table method_var_table;  // 方法变量表
 
     string class_name = "";        // 当前类名
     string method_name = "";       // 当前方法名
     tree::Tree* newNode = nullptr; // 下层结点
+    Tr_Exp* newExp = nullptr;      // 下层表达式
 
     ASTToTreeVisitor(AST_Semant_Map* semant_map)
         : semant_map(semant_map)
