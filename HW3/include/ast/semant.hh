@@ -18,8 +18,8 @@ public:
     enum Kind { Value, MethodName, ClassName };
 
 private:
-    Kind s_kind;
-    TypeKind typeKind;                        // Type类型 {CLASS=0, INT=1, ARRAY=2}
+    Kind s_kind;                              // 结点类型
+    TypeKind typeKind;                        // 值类型 {CLASS=0, INT=1, ARRAY=2}
     variant<monostate, string, int> type_par; // 类名<string> | 数组元数<int>
     bool lvalue;                              // 是否为左值
 public:
