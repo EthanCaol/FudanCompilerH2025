@@ -562,12 +562,19 @@ void ASTToTreeVisitor::visit(fdmj::CallExp* node) { }
 // EXP: GETINT '(' ')'
 void ASTToTreeVisitor::visit(fdmj::GetInt* node)
 {
-
+    auto args = new vector<tree::Exp*>();
+    auto ext_call = new tree::ExtCall(tree::Type::INT, "getint", args);
+    newExp = new Tr_ex(ext_call);
 }
 
 // 表达式->读取字符: getch()
 // EXP: GETCH '(' ')'
-void ASTToTreeVisitor::visit(fdmj::GetCh* node) { }
+void ASTToTreeVisitor::visit(fdmj::GetCh* node)
+{
+    auto args = new vector<tree::Exp*>();
+    auto ext_call = new tree::ExtCall(tree::Type::INT, "getch", args);
+    newExp = new Tr_ex(ext_call);
+}
 
 // 表达式->读取数组: getarray(数组变量)
 // EXP: GETARRAY '(' EXP ')'
