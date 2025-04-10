@@ -289,14 +289,16 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
     string op = node->op->op;
 
     node->left->accept(*this);
-    auto left = newExp->unEx(&temp_map)->exp;
+    auto left_tr = newExp;
 
     node->right->accept(*this);
-    auto right = newExp->unEx(&temp_map)->exp;
+    auto right_tr = newExp;
 
     // 算数运算
     vector<string> algo_op = { "+", "-", "*", "/" };
     if (find(algo_op.begin(), algo_op.end(), op) != algo_op.end()) {
+        auto left = left_tr->unEx(&temp_map)->exp;
+        auto right = right_tr->unEx(&temp_map)->exp;
         newExp = new Tr_ex(new tree::Binop(tree::Type::INT, op, left, right));
         return;
     }
@@ -304,6 +306,9 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
     // 比较运算
     vector<string> logic_op = { "==", "!=", "<", ">", "<=", ">=" };
     if (find(logic_op.begin(), logic_op.end(), op) != logic_op.end()) {
+        auto left = left_tr->unEx(&temp_map)->exp;
+        auto right = right_tr->unEx(&temp_map)->exp;
+
         // 构造CJump
         Label* t = temp_map.named_label(-1);
         Label* f = temp_map.named_label(-2);
@@ -318,8 +323,79 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
         return;
     }
 
-    // 逻辑运算
-    
+    // Tr_cx1:
+    //   True_patch_list: *L1
+    //   False_path_list: *L2
+    // Tr_cx2:
+    //   True_patch_list: *L3
+    //   False_path_list: *L4
+    // Tr_cx3:
+    //   True_patch_list: *L1, *L3
+    //   False_path_list: *L4
+    //   Tr_cx1.stm [L5 patches L2]
+    //   L5:
+    //   Tr_cx2.stm
+
+    // 逻辑或运算
+    if (op == "||") {
+        auto left_cx = left_tr->unCx(&temp_map);
+        auto right_cx = right_tr->unCx(&temp_map);
+        auto L1 = left_cx->true_list;
+        auto L2 = left_cx->false_list;
+        auto L3 = right_cx->true_list;
+        auto L4 = right_cx->false_list;
+
+        // 用L5填补L2
+        auto L5 = temp_map.newlabel();
+        L2->patch(L5);
+
+        // 合并L1和L3作为新的正确分支
+        L1->add(L3);
+
+        vector<tree::Stm*>* sl = new vector<tree::Stm*>();
+        sl->push_back(left_cx->stm);
+        sl->push_back(new tree::LabelStm(L5));
+        sl->push_back(right_cx->stm);
+        newExp = new Tr_cx(L1, L4, new tree::Seq(sl));
+        return;
+    }
+
+    // Tr_cx1:
+    //   True_patch_list: *L1
+    //   False_path_list: *L2
+    // Tr_cx2:
+    //   True_patch_list: *L3
+    //   False_path_list: *L4
+    // Tr_cx3:
+    //   True_patch_list: *L3
+    //   False_path_list: *L2, L4
+    //   Tr_cx1.stm [L5 patches L1]
+    //   L5:
+    //   Tr_cx2.stm
+
+    // 逻辑与运算
+    if (op == "&&") {
+        auto left_cx = left_tr->unCx(&temp_map);
+        auto right_cx = right_tr->unCx(&temp_map);
+        auto L1 = left_cx->true_list;
+        auto L2 = left_cx->false_list;
+        auto L3 = right_cx->true_list;
+        auto L4 = right_cx->false_list;
+
+        // 用L5填补L1
+        auto L5 = temp_map.newlabel();
+        L1->patch(L5);
+
+        // 合并L2和L4作为新的错误分支
+        L2->add(L4);
+
+        vector<tree::Stm*>* sl = new vector<tree::Stm*>();
+        sl->push_back(left_cx->stm);
+        sl->push_back(new tree::LabelStm(L5));
+        sl->push_back(right_cx->stm);
+        newExp = new Tr_cx(L3, L2, new tree::Seq(sl));
+        return;
+    }
 }
 
 // 表达式->一元操作: OP 表达式

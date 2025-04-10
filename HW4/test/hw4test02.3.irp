@@ -19,7 +19,7 @@
                                 </Move>
                                 <Sequence>
 
-                                    <!-- 1+2*3 > 3 -->
+                                    <!-- 1+2*3 > 3 --> L1 L2
                                     <CJump relop="&gt;" true="108" false="107">
                                         <BinOp op="+">
                                             <Const value="1"/>
@@ -32,7 +32,9 @@
                                     </CJump>
 
 
-                                    <Label label="107"/>
+                                    <Label label="107"/> L5(L2)
+
+                                    <!-- 4 && 5==0 -->
                                     <Sequence>
                                         <CJump relop="!=" true="104" false="109">
                                             <Const value="4"/>
@@ -45,6 +47,8 @@
                                         </CJump>
                                     </Sequence>
                                 </Sequence>
+
+
                                 <Label label="108"/>
                                 <Move>
                                     <Temp type="INT" temp="102"/>
