@@ -76,6 +76,8 @@ public:
     tree::Tree* newNode = nullptr; // 下层结点
     Tr_Exp* newExp = nullptr;      // 下层表达式
 
+    Label* cur_L_while, * cur_L_end; // while语句标签
+
     ASTToTreeVisitor(AST_Semant_Map* semant_map)
         : semant_map(semant_map)
     {

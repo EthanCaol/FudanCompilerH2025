@@ -30,7 +30,7 @@ int main(int argc, const char* argv[])
     chdir("../../test");
 
     string file;
-    file = "hw4test02";
+    file = "hw4test10";
     // file = argv[argc - 1];
 
     string file_ast = file + ".2-semant.ast";

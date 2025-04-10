@@ -157,17 +157,98 @@ void ASTToTreeVisitor::visit(fdmj::Formal* node) { }
 
 // 语句->语句块
 // NESTED: '{' STMLIST '}'
-void ASTToTreeVisitor::visit(fdmj::Nested* node) { }
+void ASTToTreeVisitor::visit(fdmj::Nested* node)
+{
+    vector<tree::Stm*>* sl = new vector<tree::Stm*>();
+    for (fdmj::Stm* stm : *node->sl) {
+        stm->accept(*this);
+        if (newNode)
+            sl->push_back(static_cast<tree::Stm*>(newNode));
+    }
+    newNode = new tree::Seq(sl);
+}
 
 // 语句->if语句: if (条件表达式) 语句1 [else 语句2]
 // STM: IF '(' EXP ')' STM ELSE STM
 //    | IF '(' EXP ')' STM
-void ASTToTreeVisitor::visit(fdmj::If* node) { }
+void ASTToTreeVisitor::visit(fdmj::If* node)
+{
+    node->exp->accept(*this);
+    auto exp_cx = newExp->unCx(&temp_map);
+
+    // exp_cx:
+    //   True_patch_list: *L1
+    //   False_path_list: *L2
+    // If:
+    //   True_patch_list: *L3
+    //   False_path_list: *L2, L4
+    //   Tr_cx1.stm [L5 patches L1]
+    //   L5:
+    //   Tr_cx2.stm
+
+    auto L1 = exp_cx->true_list;
+    auto L2 = exp_cx->false_list;
+    auto L_true = temp_map.newlabel();
+    auto L_false = temp_map.newlabel();
+    auto L_end = temp_map.newlabel();
+
+    // 用L_true填补L1, 用L_false填补L2
+    L1->patch(L_true);
+    L2->patch(L_false);
+
+    vector<tree::Stm*>* sl = new vector<tree::Stm*>();
+    sl->push_back(exp_cx->stm);
+    sl->push_back(new tree::LabelStm(L_true));
+
+    node->stm1->accept(*this);
+    auto stm1 = static_cast<tree::Stm*>(newNode);
+    sl->push_back(stm1);
+    sl->push_back(new tree::Jump(L_end));
+
+    sl->push_back(new tree::LabelStm(L_false));
+    if (node->stm2) {
+        node->stm2->accept(*this);
+        auto stm2 = static_cast<tree::Stm*>(newNode);
+        sl->push_back(stm2);
+    }
+
+    sl->push_back(new tree::LabelStm(L_end));
+    newNode = new tree::Seq(sl);
+}
 
 // 语句->while语句: while (条件表达式) 语句
 // STM: WHILE '(' EXP ')' STM
 //    | WHILE '(' EXP ')' ';'
-void ASTToTreeVisitor::visit(fdmj::While* node) { }
+void ASTToTreeVisitor::visit(fdmj::While* node)
+{
+    node->exp->accept(*this);
+    auto exp_cx = newExp->unCx(&temp_map);
+    auto L1 = exp_cx->true_list;
+    auto L2 = exp_cx->false_list;
+
+    auto L_while = temp_map.newlabel();
+    auto L_true = temp_map.newlabel();
+    auto L_end = temp_map.newlabel();
+
+    L1->patch(L_true);
+    L2->patch(L_end);
+
+    vector<tree::Stm*>* sl = new vector<tree::Stm*>();
+    sl->push_back(new tree::LabelStm(L_while));
+    sl->push_back(exp_cx->stm);
+
+    sl->push_back(new tree::LabelStm(L_true));
+    if (node->stm) {
+        cur_L_while = L_while;
+        cur_L_end = L_end;
+        node->stm->accept(*this);
+        auto stm = static_cast<tree::Stm*>(newNode);
+        sl->push_back(stm);
+    }
+    sl->push_back(new tree::Jump(L_while));
+    sl->push_back(new tree::LabelStm(L_end));
+    newNode = new tree::Seq(sl);
+}
 
 // 语句->赋值语句: 左值表达式 = 右值表达式;
 // STM: EXP '=' EXP ';'
@@ -188,11 +269,11 @@ void ASTToTreeVisitor::visit(fdmj::CallStm* node) { }
 
 // 语句->continue语句: continue;
 // STM: CONTINUE ';'
-void ASTToTreeVisitor::visit(fdmj::Continue* node) { }
+void ASTToTreeVisitor::visit(fdmj::Continue* node) { newNode = new tree::Jump(cur_L_while); }
 
 // 语句->break语句: break;
 // STM: BREAK ';'
-void ASTToTreeVisitor::visit(fdmj::Break* node) { }
+void ASTToTreeVisitor::visit(fdmj::Break* node) { newNode = new tree::Jump(cur_L_end); }
 
 // 语句->return语句: return 表达式;
 // STM: RETURN EXP ';'
@@ -200,7 +281,7 @@ void ASTToTreeVisitor::visit(fdmj::Return* node)
 {
     node->exp->accept(*this);
     auto exp = newExp->unEx(&temp_map)->exp;
-    newExp = new Tr_ex(exp);
+    newNode = new tree::Return(exp);
 }
 
 // 语句->打印整数语句: putint(表达式);
@@ -209,7 +290,17 @@ void ASTToTreeVisitor::visit(fdmj::PutInt* node) { }
 
 // 语句->打印字符语句: putch(表达式);
 // STM: PUTCH '(' EXP ')' ';'
-void ASTToTreeVisitor::visit(fdmj::PutCh* node) { }
+void ASTToTreeVisitor::visit(fdmj::PutCh* node)
+{
+    node->exp->accept(*this);
+    auto exp = newExp->unEx(&temp_map)->exp;
+
+    auto args = new vector<tree::Exp*>();
+    args->push_back(exp);
+
+    auto ext_call = new tree::ExtCall(tree::Type::INT, "putch", args);
+    newNode = new tree::ExpStm(ext_call);
+}
 
 // 语句->打印数组语句: putarray(长度表达式, 数组表达式);
 // STM: PUTARRAY '(' EXP ',' EXP ')' ';'
@@ -245,9 +336,16 @@ void ASTToTreeVisitor::visit(fdmj::Stoptime* node) { }
 // EXP: '(' '{' STMLIST '}' EXP ')'
 void ASTToTreeVisitor::visit(fdmj::Esc* node)
 {
-    for (fdmj::Stm* stm : *node->sl)
+    vector<tree::Stm*>* sl = new vector<tree::Stm*>();
+    for (fdmj::Stm* stm : *node->sl) {
         stm->accept(*this);
+        if (newNode)
+            sl->push_back(static_cast<tree::Stm*>(newNode));
+    }
+
     node->exp->accept(*this);
+    auto exp = newExp->unEx(&temp_map)->exp;
+    newExp = new Tr_ex(new tree::Eseq(tree::Type::INT, new tree::Seq(sl), exp));
 }
 
 // 表达式->标识符: id
@@ -310,8 +408,8 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
         auto right = right_tr->unEx(&temp_map)->exp;
 
         // 构造CJump
-        Label* t = temp_map.named_label(-1);
-        Label* f = temp_map.named_label(-2);
+        Label* t = temp_map.newlabel();
+        Label* f = temp_map.newlabel();
         auto cjump = new tree::Cjump(op, left, right, t, f);
 
         // 添加修补列表
