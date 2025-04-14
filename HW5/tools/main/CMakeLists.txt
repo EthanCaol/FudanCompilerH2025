@@ -8,6 +8,7 @@ target_compile_features(${MAIN} PUBLIC cxx_std_17)
 
 # 添加链接库
 target_link_libraries(${MAIN} PUBLIC
+  frontend
   util
   ast
   ir
