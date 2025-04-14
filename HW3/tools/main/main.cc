@@ -15,7 +15,7 @@ using namespace tinyxml2;
 
 #define with_location_info true
 
-Program* prog();
+fdmj::Program* prog();
 
 int main(int argc, const char* argv[])
 {
@@ -34,7 +34,7 @@ int main(int argc, const char* argv[])
     string file_ast_semant = file + ".2-semant.xml";
 
     ifstream fmjfile(file_fmj);
-    Program* root = fdmjParser(fmjfile, false);
+    fdmj::Program* root = fdmjParser(fmjfile, false);
     if (root == nullptr) {
         cout << "AST无效" << endl;
         return EXIT_FAILURE;
