@@ -50,7 +50,7 @@ public:
 // 结点语义信息
 class AST_Semant_Map {
 private:
-    Name_Maps* name_maps;
+    Name_Maps* name_maps = nullptr;
     map<AST*, AST_Semant*> semant_map;
 
 public:
@@ -95,7 +95,11 @@ private:
 public:
     AST_Semant_Visitor(Name_Maps* name_maps)
         : name_maps(name_maps)
-        , semant_map(new AST_Semant_Map()) { };
+        , semant_map(new AST_Semant_Map())
+    {
+        semant_map->setNameMaps(name_maps);
+    }
+
     AST_Semant_Map* getSemantMap() { return semant_map; }
 
     bool is_assignable(fdmj::Type* left, AST_Semant* right);

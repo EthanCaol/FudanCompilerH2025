@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <map>
+#include <set>
 #include <vector>
 #include <algorithm>
 #include "semant.hh"
@@ -119,7 +120,6 @@ bool Name_Maps::add_method(string class_name, string method_name, Formal* f)
     methodFormal[tuple<string, string, string>(class_name, method_name, return_prefix + method_name)] = f;
     return true;
 }
-
 
 set<string>* Name_Maps::get_method_list(string class_name)
 {

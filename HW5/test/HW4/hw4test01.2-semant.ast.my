@@ -9,11 +9,11 @@
         </VarDeclList>
         <StmList>
             <Assign>
-                <IdExp id="x"/>
-                <IntExp val="1"/>
+                <IdExp s_kind="Value" typeKind="INT" lvalue="true" id="x"/>
+                <IntExp s_kind="Value" typeKind="INT" lvalue="false" val="1"/>
             </Assign>
-            <Return>
-                <IdExp id="x"/>
+            <Return s_kind="Value" typeKind="INT" lvalue="false">
+                <IdExp s_kind="Value" typeKind="INT" lvalue="true" id="x"/>
             </Return>
         </StmList>
     </MainMethod>

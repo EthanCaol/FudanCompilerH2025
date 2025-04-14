@@ -34,8 +34,6 @@ void ASTToTreeVisitor::visit(fdmj::Program* node)
 {
     vector<tree::FuncDecl*>* fdl = new vector<tree::FuncDecl*>();
 
-    // 主方法
-    class_name = "_^main^_";
     node->main->accept(*this);
     tree::FuncDecl* main_fd = static_cast<tree::FuncDecl*>(newNode);
     fdl->push_back(main_fd);
@@ -48,7 +46,8 @@ void ASTToTreeVisitor::visit(fdmj::Program* node)
 // FunctionDeclaration Blocks Block Statements
 void ASTToTreeVisitor::visit(fdmj::MainMethod* node)
 {
-    method_name = "main";
+    class_name = MAIN_class_name;
+    method_name = MAIN_method_name;
 
     // 形参列表
     vector<tree::Temp*>* args = new vector<tree::Temp*>();
@@ -79,12 +78,12 @@ void ASTToTreeVisitor::visit(fdmj::MainMethod* node)
 
     // 记录返回值类型
     auto temp = temp_map.newtemp();
-    method_var_table.var_temp_map->insert({ "_^return^_" + method_name, temp });
-    method_var_table.var_type_map->insert({ "_^return^_" + method_name, tree::Type::INT });
+    method_var_table.var_temp_map->insert({ return_prefix + method_name, temp });
+    method_var_table.var_type_map->insert({ return_prefix + method_name, tree::Type::INT });
 
     int lt = temp_map.next_temp - 1;
     int ll = temp_map.next_label - 1;
-    newNode = new tree::FuncDecl("_^main^_^main", args, bkl, tree::Type::INT, lt, ll);
+    newNode = new tree::FuncDecl(class_name + "^" + method_name, args, bkl, tree::Type::INT, lt, ll);
 }
 
 // 类声明: 类名 [基类名] { 变量声明列表 方法声明列表 }
