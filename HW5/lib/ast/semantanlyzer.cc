@@ -133,8 +133,8 @@ void AST_Semant_Visitor::visit(fdmj::Program* node)
 void AST_Semant_Visitor::visit(fdmj::MainMethod* node)
 {
     // 更新当前类名和方法名
-    current_class_name = "";
-    current_method_name = "main";
+    current_class_name = MAIN_class_name;
+    current_method_name = MAIN_method_name;
 
     // 调用accept(visit)
     for (auto vd : *(node->vdl)) {

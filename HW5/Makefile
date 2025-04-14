@@ -43,6 +43,16 @@ run: $(MAIN)
 	done; \
 	cd .. > /dev/null 2>&1 
 
+run_HW3: $(MAIN)
+	cd $(CURDIR)/test/HW3 && \
+	for file in $$(ls .); do \
+        if [ "$${file##*.}" = "fmj" ]; then \
+            echo "Reading $${file%%.*}"; \
+			$(MAIN) "$${file%%.*}"; \
+        fi \
+	done; \
+	cd .. > /dev/null 2>&1 
+
 FILE ?= test2
 
 run-one: $(MAIN)

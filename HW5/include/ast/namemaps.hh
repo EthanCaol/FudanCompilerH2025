@@ -118,4 +118,7 @@ public:
 // 对外接口函数
 Name_Maps* makeNameMaps(fdmj::Program* node);
 
+const string MAIN_class_name = "_^main^_";
+const string MAIN_method_name = "main";
+const string return_prefix = "_^return^_";
 #endif

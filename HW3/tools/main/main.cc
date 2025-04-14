@@ -26,8 +26,8 @@ int main(int argc, const char* argv[])
     chdir("../../test");
 
     string file;
-    // file = "test2";
-    file = argv[argc - 1];
+    file = "bubblesort";
+    // file = argv[argc - 1];
 
     string file_fmj = file + ".fmj";
     string file_ast = file + ".2.xml";

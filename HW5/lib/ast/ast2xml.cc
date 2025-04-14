@@ -72,8 +72,8 @@ static void set_position_and_semant(XMLElement* el, const Pos* pos, AST* node)
                 cerr << "Error: Unknown type kind" << endl;
                 break;
         }
-    } 
-    
+    }
+
     else if (kd != AST_Semant::Kind::MethodName && kd != AST_Semant::Kind::ClassName) {
         Pos p(pos->sline, pos->scolumn, pos->eline, pos->ecolumn);
         cerr << "Error: at position " << p.print() << endl;

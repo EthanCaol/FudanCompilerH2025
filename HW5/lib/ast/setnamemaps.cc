@@ -13,7 +13,7 @@
 using namespace std;
 using namespace fdmj;
 
-string return_prefix = "_^return^_";
+
 
 // 1. 判断参数非空
 // 2. 执行名称映射操作
@@ -35,8 +35,8 @@ void AST_Name_Map_Visitor::visit(Program* node)
 void AST_Name_Map_Visitor::visit(MainMethod* node)
 {
     // 更新当前类名和方法名
-    current_class_name = "_^main^_";
-    current_method_name = "main";
+    current_class_name = MAIN_class_name;
+    current_method_name = MAIN_method_name;
 
     // 添加主方法类名
     if (!name_maps->add_class(current_class_name)) {
@@ -54,10 +54,12 @@ void AST_Name_Map_Visitor::visit(MainMethod* node)
     }
 
     // 调用accept(visit)
-    for (auto vd : *(node->vdl))
+    for (auto vd : *(node->vdl)) {
         vd->accept(*this);
-    for (auto s : *(node->sl))
+    }
+    for (auto s : *(node->sl)) {
         s->accept(*this);
+    }
 
     // 恢复当前类名和方法名
     current_class_name = "";
@@ -113,10 +115,12 @@ void AST_Name_Map_Visitor::visit(ClassDecl* node)
     current_class_name = node->id->id;
 
     // 调用accept(visit)
-    for (auto vd : *(node->vdl))
+    for (auto vd : *(node->vdl)) {
         vd->accept(*this);
-    for (auto md : *(node->mdl))
+    }
+    for (auto md : *(node->mdl)) {
         md->accept(*this);
+    }
 
     // 恢复当前类名
     current_class_name = "";
