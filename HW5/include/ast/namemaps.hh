@@ -15,7 +15,7 @@ private:
     map<string, string> classHierachy; // 类->父类
 
     map<pair<string, string>, VarDecl*> classVar;               // 类成员变量 -> 声明结点
-    set<pair<string, string>> methods;                          // 类方法 (返回值 _^return^_method)
+    set<pair<string, string>> methods;                          // 类方法 (返回参数 _^return^_method)
     map<tuple<string, string, string>, Formal*> methodFormal;   // 类方法参数 -> 参数结点
     map<tuple<string, string, string>, VarDecl*> methodVar;     // 类方法变量 -> 声明结点
     map<pair<string, string>, vector<string>> methodFormalList; // 类方法名   -> 参数名列表
@@ -38,10 +38,12 @@ public:
     VarDecl* get_class_var(string class_name, string var_name);          // 获取类成员变量
     set<string>* get_class_var_list(string class_name);                  // 获取类所有成员变量
 
-    // 类->方法->返回类型
-    bool is_method(string class_name, string method_name);  // 判断是否为类方法
-    bool add_method(string class_name, string method_name); // 添加类方法
-    set<string>* get_method_list(string class_name);        // 获取类所有方法
+    // 类->方法
+    fdmj::Formal* get_method_return_formal(string class_name, string method_name); // 获取类方法返回参数
+    bool is_method(string class_name, string method_name);                         // 判断是否为类方法
+    bool add_method(string class_name, string method_name);                        // 添加类方法
+    bool add_method(string class_name, string method_name, Formal* f);             // 添加类方法 (带返回参数)
+    set<string>* get_method_list(string class_name);                               // 获取类所有方法
 
     // 类->方法->参数列表
     bool add_method_formal_list(string class_name, string method_name, vector<string> vl); // 添加类方法参数列表

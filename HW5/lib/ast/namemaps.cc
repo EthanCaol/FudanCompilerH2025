@@ -11,6 +11,19 @@
 using namespace std;
 using namespace fdmj;
 
+// 对外接口函数
+Name_Maps* makeNameMaps(Program* node)
+{
+    if (node == nullptr) {
+        cerr << "makeNameMaps: 程序为空" << endl;
+        return nullptr;
+    }
+
+    AST_Name_Map_Visitor name_visitor;
+    node->accept(name_visitor);
+    return name_visitor.getNameMaps();
+}
+
 bool Name_Maps::is_class(string class_name) { return classes.find(class_name) != classes.end(); }
 
 bool Name_Maps::add_class(string class_name)
@@ -73,6 +86,12 @@ vector<string>* Name_Maps::get_ancestors(string class_name)
     return ancestors;
 }
 
+fdmj::Formal* Name_Maps::get_method_return_formal(string class_name, string method_name)
+{
+    string return_prefix = "_^return^_";
+    return methodFormal[tuple<string, string, string>(class_name, method_name, return_prefix + method_name)];
+}
+
 bool Name_Maps::is_method(string class_name, string method_name)
 {
     pair<string, string> p(class_name, method_name);
@@ -87,6 +106,20 @@ bool Name_Maps::add_method(string class_name, string method_name)
     methods.insert(pair<string, string>(class_name, method_name));
     return true;
 }
+
+bool Name_Maps::add_method(string class_name, string method_name, Formal* f)
+{
+    if (Name_Maps::is_method(class_name, method_name)) {
+        return false;
+    }
+    methods.insert(pair<string, string>(class_name, method_name));
+
+    // 添加方法返回值
+    string return_prefix = "_^return^_";
+    methodFormal[tuple<string, string, string>(class_name, method_name, return_prefix + method_name)] = f;
+    return true;
+}
+
 
 set<string>* Name_Maps::get_method_list(string class_name)
 {
