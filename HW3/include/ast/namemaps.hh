@@ -15,28 +15,33 @@ private:
     map<string, string> classHierachy; // 类->父类
 
     map<pair<string, string>, VarDecl*> classVar;               // 类成员变量 -> 声明结点
-    map<pair<string, string>, Type*> methods;                   // 类方法    -> 方法返回类型
+    set<pair<string, string>> methods;                          // 类方法 (返回_^return^_method)
     map<tuple<string, string, string>, Formal*> methodFormal;   // 类方法参数 -> 参数结点
     map<tuple<string, string, string>, VarDecl*> methodVar;     // 类方法变量 -> 声明结点
     map<pair<string, string>, vector<string>> methodFormalList; // 类方法名   -> 参数名列表
 public:
+    // to report if there is any error in setting up the name maps
+    bool passed_name_maps = true;
+
     // 类
-    bool is_class(string class_name);                               // 判断是否为类
-    bool add_class(string class_name);                              // 添加类
+    bool is_class(string class_name);  // 判断是否为类
+    bool add_class(string class_name); // 添加类
+    set<string>* get_class_list();
+
+    bool detected_loop(map<string, string> classHierachy);
     bool add_class_hiearchy(string class_name, string parent_name); // 添加类继承关系
-    set<string> get_ancestors(string class_name);                   // 获取类的所有祖先类
+    vector<string>* get_ancestors(string class_name);                   // 获取类的所有祖先类
 
     // 类->成员变量
     bool is_class_var(string class_name, string var_name);               // 判断是否为类成员变量
     bool add_class_var(string class_name, string var_name, VarDecl* vd); // 添加类成员变量
     VarDecl* get_class_var(string class_name, string var_name);          // 获取类成员变量
-    vector<VarDecl*>* get_class_var(string class_name);                  // 获取类所有成员变量
+    set<string>* get_class_var_list(string class_name);                  // 获取类所有成员变量
 
     // 类->方法->返回类型
     bool is_method(string class_name, string method_name);              // 判断是否为类方法
     bool add_method(string class_name, string method_name, Type* type); // 添加类方法返回类型
-    Type* get_method_type(string class_name, string method_name);       // 获取类方法返回类型
-    vector<string>* get_method(string class_name);                      // 获取类所有方法
+    set<string>* get_method_list(string class_name);                    // 获取类所有方法
 
     // 类->方法->参数列表
     bool add_method_formal_list(string class_name, string method_name, vector<string> vl); // 添加类方法参数列表
@@ -51,6 +56,7 @@ public:
     bool is_method_var(string class_name, string method_name, string var_name);               // 判断是否为类方法变量
     bool add_method_var(string class_name, string method_name, string var_name, VarDecl* vd); // 添加类方法变量
     VarDecl* get_method_var(string class_name, string method_name, string var_name);          // 获取类方法变量
+    set<string>* get_method_var_list(string class_name, string method_name);
 
     void print(); // 打印信息
 };

@@ -61,6 +61,8 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
+    AST_Semant_Map* semant_map = semant_analyze(root);
+
     
 
     // cout << "从XML文件读取AST: " << file_ast << endl;
