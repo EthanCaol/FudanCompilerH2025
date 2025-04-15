@@ -8,3 +8,7 @@ This is HW4 (published on March 22, 2025).
 3. For output, you should use tree2xml to convert your tree to an XML file (named "file.3.irp").
 
 4. The use of Tr_Exp etc. will be explained in class.
+
+
+继承之后 保留 父类的相对位置 在低地址
+如果有覆写 则更新

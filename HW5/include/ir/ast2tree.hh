@@ -53,13 +53,27 @@ class Method_var_table {
 public:
     map<string, tree::Temp*>* var_temp_map; // 变量名->变量结点
     map<string, tree::Type>* var_type_map;  // 变量名->类型结点
-    Method_var_table()
+
+    Method_var_table(map<string, tree::Temp*>* var_temp_map, map<string, tree::Type>* var_type_map)
+        : var_temp_map(var_temp_map)
+        , var_type_map(var_type_map) { };
+
+    tree::Temp* get_var_temp(string var_name)
     {
-        var_temp_map = new map<string, tree::Temp*>();
-        var_type_map = new map<string, tree::Type>();
-    };
-    tree::Temp* get_var_temp(string var_name) { return var_temp_map->at(var_name); }
-    tree::Type get_var_type(string var_name) { return var_type_map->at(var_name); }
+        if (var_temp_map->find(var_name) == var_temp_map->end()) {
+            cerr << "get_var_temp: " << var_name << "不存在" << endl;
+            exit(-1);
+        }
+        return var_temp_map->at(var_name);
+    }
+    tree::Type get_var_type(string var_name)
+    {
+        if (var_type_map->find(var_name) == var_type_map->end()) {
+            cerr << "get_var_type: " << var_name << "不存在" << endl;
+            exit(-1);
+        }
+        return var_type_map->at(var_name);
+    }
 };
 
 class ASTToTreeVisitor : public fdmj::AST_Visitor {
@@ -67,22 +81,22 @@ public:
     AST_Semant_Map* semant_map = nullptr; // FDMJ语义分析表
 
     tree::Program* tree_root = nullptr; // 根节点
-    Temp_map temp_map;                  // 临时变量与标签映射表
-    Class_table* class_table;           // 类表
-    Method_var_table method_var_table;  // 方法变量表
+    Temp_map temp_map;                  // 变量标签编号表
 
-    string class_name = "";        // 当前类名
-    string method_name = "";       // 当前方法名
-    tree::Tree* newNode = nullptr; // 下层结点
-    Tr_Exp* newExp = nullptr;      // 下层表达式
+    Class_table* class_table; // 类表
 
-    Label* cur_L_while, * cur_L_end; // while语句标签
+    string class_name = "";            // 当前类名
+    string method_name = "";           // 当前方法名
+    Method_var_table* method_var_table; // 当前方法变量表
+    vector<tree::Tree*> newNodes;      // 下层结点集
+    Tr_Exp* newExp = nullptr;          // 下层表达式
+
+    Label *cur_L_while, *cur_L_end; // while语句标签 (用于continue和break语句)
 
     ASTToTreeVisitor(AST_Semant_Map* semant_map)
         : semant_map(semant_map)
     {
-        class_table = generate_class_table(semant_map);
-    };
+    }
     ~ASTToTreeVisitor() { }
     tree::Program* getTree() { return tree_root; }
 

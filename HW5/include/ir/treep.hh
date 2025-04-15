@@ -262,12 +262,14 @@ public:
     void accept(Visitor& v) { v.visit(this); }
 };
 
+// 表达式->访存表达式
+// 数组布局 <size,a[0],a[1]...>
+// Memory: Temp
 class Mem : public Exp {
 public:
     Exp* mem;
     Mem(Type t, Exp* mem)
-        : Exp(t)
-        , mem(mem) { };
+        :  mem(mem) { };
     Kind getTreeKind() { return Kind::MEM; }
     void accept(Visitor& v) { v.visit(this); }
 };

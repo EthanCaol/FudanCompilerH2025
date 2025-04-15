@@ -36,8 +36,8 @@ int main(int argc, const char* argv[])
     chdir("../../test");
 
     string file;
-    string dir = "HW4/";
-    file = dir + "hw4test05";
+    string dir = "";
+    file = dir + "test0";
     // file = dir + argv[argc - 1];
 
     string file_fmj = file + ".fmj";

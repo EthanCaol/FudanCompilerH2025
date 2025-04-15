@@ -11,6 +11,7 @@
         "tuple": "cpp",
         "utility": "cpp",
         "new": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "set": "cpp"
     }
 }

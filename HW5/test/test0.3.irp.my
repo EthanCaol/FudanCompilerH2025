@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Program>
+    <FunctionDeclaration name="_^main^_^main" return_type="INT" last_temp="101" last_label="100">
+        <Blocks>
+            <Block entry_label="100">
+                <Sequence>
+                    <Label label="100"/>
+                    <Move>
+                        <Temp type="PTR" temp="100"/>
+                        <ExtCall extfun="malloc" type="PTR">
+                            <Arguments>
+                                <Const value="20"/>
+                            </Arguments>
+                        </ExtCall>
+                    </Move>
+                    <Move>
+                        <Memory type="PTR">
+                            <Temp type="PTR" temp="100"/>
+                        </Memory>
+                        <Const value="4"/>
+                    </Move>
+                    <Move>
+                        <Temp type="INT" temp="101"/>
+                        <Temp type="INT" temp="101"/>
+                    </Move>
+                    <Move>
+                        <Temp type="INT" temp="100"/>
+                        <BinOp op="-" type="INT">
+                            <Const value="0"/>
+                            <Temp type="INT" temp="100"/>
+                        </BinOp>
+                    </Move>
+                    <Return>
+                        <BinOp op="-" type="INT">
+                            <Const value="0"/>
+                            <Temp type="INT" temp="100"/>
+                        </BinOp>
+                    </Return>
+                </Sequence>
+            </Block>
+        </Blocks>
+    </FunctionDeclaration>
+</Program>

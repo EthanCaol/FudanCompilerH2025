@@ -2,24 +2,27 @@
 <Program>
     <FunctionDeclaration name="_^main^_^main" return_type="INT" last_temp="108" last_label="105">
         <Blocks>
-            <Block entry_label="105"> #block begin with entry label
+            <Block entry_label="105">
                 <Sequence>
-                    <Label label="105"/> #entry label
-                    <Move> #intialize array “a” (size = 4), t100 is “a” 
+                    <Label label="105"/>
+
+                    <Move> 分配内存
                         <Temp type="PTR" temp="100"/>
                         <ExtCall extfun="malloc" type="PTR">
                             <Arguments>
-                                <Const value="20"/> #((4+1)*4): (note: the use of int_length from config.h)
+                                <Const value="20"/> int_length=4  (size+1)*4
                             </Arguments>
                         </ExtCall>
                     </Move>
-                    <Move> #put size into the first slot of “a”
-                        <Memory> 
+
+                    <Move> 设置数组大小
+                        <Memory>
                             <Temp type="PTR" temp="100"/>
                         </Memory>
                         <Const value="4"/> 
                     </Move>
-                    <Move> 
+
+                    <Move>  从终端读数组
                         <Temp type="INT" temp="101"/> #stores the length of the input array
                         <ExtCall extfun="getarray" type="INT"> #get array: external call
                             <Arguments>
@@ -27,23 +30,26 @@
                             </Arguments>
                         </ExtCall>
                     </Move>
-                    <Move>
+
+                    <Move> a=-a
                         <Temp type="PTR" temp="100"/> # get the result of a = -a 
-                        <ESeq>
+                        <ESeq> -a
                             <Sequence>
-                                <Move>
-                                    <Temp type="INT" temp="104"/>  #get the size of input “a”
+
+                                <Move> 获取数组大小size
+                                    <Temp type="INT" temp="104"/>
                                     <Memory>
                                         <Temp type="PTR" temp="100"/>
                                     </Memory>
                                 </Move>
-                                <Move>
-                                    <Temp type="PTR" temp="105"/> #intialize an array of same size as “a”
-                                    <ExtCall extfun="malloc" type="PTR">  #malloc ( (size(a)+1)*4)
-                                        <Arguments>
+
+                                <Move> 初始化相同大小的暂存数组
+                                    <Temp type="PTR" temp="105"/>
+                                    <ExtCall extfun="malloc" type="PTR">
+                                        <Arguments> 现场计算(size+1)*4
                                             <BinOp op="*" type="INT">
                                                 <BinOp op="+" type="INT">
-                                                    <Temp type="INT" temp="104"/> #size of “a”
+                                                    <Temp type="INT" temp="104"/>
                                                     <Const value="1"/> #+1
                                                 </BinOp>
                                                 <Const value="4"/> #*4
@@ -51,18 +57,21 @@
                                         </Arguments>
                                     </ExtCall>
                                 </Move>
-                                <Move> #put the size of “a” in the first slot of the new array
+
+                                <Move> 设置暂存数组大小为size
                                     <Memory> 
-                                        <Temp type="PTR" temp="105"/>  #new array
+                                        <Temp type="PTR" temp="105"/>
                                     </Memory>
-                                    <Temp type="INT" temp="104"/> #size of “a”
+                                    <Temp type="INT" temp="104"/>
                                 </Move>
-                                <Move> #start to do -a. First initialize an index (t106) = 4
+
+                                <Move> 初始化下标索引i=4
                                     <Temp type="INT" temp="106"/> #this is to be used as the index
                                     <Const value="4"/>
                                 </Move>
-                                <Move> 
-                                    <Temp type="INT" temp="107"/> #  bound of the loop  = (size+1)*4
+
+                                <Move> 初始化边界end=(size+1)*4
+                                    <Temp type="INT" temp="107"/>
                                     <BinOp op="*" type="INT">
                                         <BinOp op="+" type="INT">
                                             <Temp type="INT" temp="104"/>
@@ -71,14 +80,22 @@
                                         <Const value="4"/>
                                     </BinOp>
                                 </Move>
-                                <Label label="100"/>
-                                <CJump relop="&lt;" true="101" false="102"> #test if index < bound
+                                
+                                while(i&lt;end)
+                                    *(t+i)=0-*(a+i)
+                                    i=i+4
+                                <Label label="100"/> L_while
+                                exp_cx.stm i&lt;end
+                                <CJump relop="&lt;" true="101" false="102">
                                     <Temp type="INT" temp="106"/>
                                     <Temp type="INT" temp="107"/>
                                 </CJump>
-                                <Label label="101"/> #still in bound
-                                <Move> #store 0-a[i] into new array[i]
-                                    <Memory> #new array at the position index
+                                
+                                <Label label="101"/> L_true [L1]
+
+                                stm *(t+i)=0-*(a+i)
+                                <Move>
+                                    <Memory>
                                         <BinOp op="+" type="PTR">
                                             <Temp type="PTR" temp="105"/> #new array
                                             <Temp type="INT" temp="106"/> #index
@@ -94,6 +111,8 @@
                                         </Memory>
                                     </BinOp>
                                 </Move>
+
+                                i=i+4
                                 <Move> #increment index by 4
                                     <Temp type="INT" temp="106"/>
                                     <BinOp op="+" type="INT">
@@ -101,13 +120,17 @@
                                         <Const value="4"/>
                                     </BinOp>
                                 </Move>
-                                <Jump label="100"/> #continue the loop
-                                <Label label="102"/> #loop done
+                                <Jump label="100"/> Jump L_while
+                                <Label label="102"/> L_end [L2]
                             </Sequence>
-                            <Temp type="PTR" temp="105"/> #new array (to assign to “a”)
+                            
+                            返回新指针
+                            <Temp type="PTR" temp="105"/>
                         </ESeq>
-                    </Move> #call putarray
-                    <ExpressionStatement>
+                    </Move>
+                   
+
+                    <ExpressionStatement> 向终端写数组
                         <ExtCall extfun="putarray" type="INT">
                             <Arguments>
                                 <Const value="4"/>  #first is the number of elements to “put”
@@ -115,25 +138,30 @@
                             </Arguments>
                         </ExtCall>
                     </ExpressionStatement>
-                    <Return> #return a[0]. Note we have code to check if 0 is out of bound.
-                        <Memory>
-                            <BinOp op="+" type="PTR">
-                                <Temp type="PTR" temp="100"/>
-                                <BinOp op="*" type="INT">
-                                    <BinOp op="+" type="INT">
+                    
+                    <Return> 返回a[0] 需要越界检查
+                        <Memory> *(a+(i+1)*4)
+                            <BinOp op="+" type="PTR"> a+(i+1)*4
+                                <Temp type="PTR" temp="100"/> a
+                                <BinOp op="*" type="INT"> (i+1)*4
+                                    <BinOp op="+" type="INT"> (i+1)
                                         <ESeq>
                                             <Sequence>
-                                                <Move>
+                                                <Move> 取出size
                                                     <Temp type="INT" temp="108"/>
                                                     <Memory>
                                                         <Temp type="PTR" temp="100"/>
                                                     </Memory>
                                                 </Move>
+
+                                                if 0 &gt;= size ? exit(-1) : i=0 (判断长度为正数)
                                                 <CJump relop="&gt;=" true="103" false="104"> #index (0) >= size?
                                                     <Const value="0"/>
                                                     <Temp type="INT" temp="108"/>
                                                 </CJump>
                                                 <Label label="103"/>
+
+                                                错误返回
                                                 <ExpressionStatement>
                                                     <ExtCall extfun="exit" type="INT">
                                                         <Arguments>
@@ -141,13 +169,14 @@
                                                         </Arguments>
                                                     </ExtCall>
                                                 </ExpressionStatement>
+
                                                 <Label label="104"/>
                                             </Sequence>
-                                            <Const value="0"/> #index=0
+                                            <Const value="0"/> i=0
                                         </ESeq>
-                                        <Const value="1"/> #+1
+                                        <Const value="1"/> +1
                                     </BinOp>
-                                    <Const value="4"/> # *4
+                                    <Const value="4"/> *4
                                 </BinOp>
                             </BinOp>
                         </Memory>

@@ -40,7 +40,7 @@ public:
     string str() { return name; }
 };
 
-// 记录映射
+// 变量标签编码表
 class Temp_map {
 public:
     map<int, bool> t_map; // 临时变量映射
