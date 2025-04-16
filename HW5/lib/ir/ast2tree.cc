@@ -275,7 +275,7 @@ void ASTToTreeVisitor::visit(fdmj::MethodDecl* node)
 // TYPE: INT | INT '[' ']' | CLASS ID
 void ASTToTreeVisitor::visit(fdmj::Type* node) { }
 
-vector<tree::Stm*>* array_decl_helper(fdmj::VarDecl* node, tree::TempExp* array_temp)
+vector<tree::Stm*>* array_decl_helper(fdmj::VarDecl* node, tree::TempExp* arr_temp)
 {
     auto type = node->type;
     auto init = node->init;
@@ -291,10 +291,10 @@ vector<tree::Stm*>* array_decl_helper(fdmj::VarDecl* node, tree::TempExp* array_
     // temp=malloc((size+1) * int_length)
     auto array_malloc_args = new vector<tree::Exp*> { new tree::Const((size + 1) * int_length) };
     auto array_malloc = new tree::ExtCall(tree::Type::PTR, "malloc", array_malloc_args);
-    sl->push_back(new tree::Move(array_temp, array_malloc));
+    sl->push_back(new tree::Move(arr_temp, array_malloc));
 
     // temp.size=size
-    auto size_mem = new tree::Mem(tree::Type::INT, array_temp);
+    auto size_mem = new tree::Mem(tree::Type::INT, arr_temp);
     sl->push_back(new tree::Move(size_mem, new tree::Const(size)));
 
     if (holds_alternative<vector<IntExp*>*>(init)) {
@@ -302,7 +302,7 @@ vector<tree::Stm*>* array_decl_helper(fdmj::VarDecl* node, tree::TempExp* array_
         for (int i = 0; i < init_list.size(); i++) {
             auto valExp = init_list[i];
             auto offset = new tree::Const((i + 1) * int_length);
-            auto index_mem = new tree::Mem(tree::Type::INT, new tree::Binop(tree::Type::PTR, "+", array_temp, offset));
+            auto index_mem = new tree::Mem(tree::Type::INT, new tree::Binop(tree::Type::PTR, "+", arr_temp, offset));
             sl->push_back(new tree::Move(index_mem, new tree::Const(valExp->val)));
         }
     }
@@ -337,8 +337,8 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
 
     // 整型数组
     else if (type->typeKind == TypeKind::ARRAY) {
-        auto array_temp = new tree::TempExp(tree::Type::PTR, temp);
-        auto sl = array_decl_helper(node, array_temp);
+        auto arr_temp = new tree::TempExp(tree::Type::PTR, temp);
+        auto sl = array_decl_helper(node, arr_temp);
         newNodes.insert(newNodes.end(), sl->begin(), sl->end());
     }
 
@@ -376,9 +376,9 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
             // 成员变量是整型数组
             else if (var_decl->type->typeKind == TypeKind::ARRAY) {
                 // 首先构造暂存数组
-                auto array_temp = new tree::TempExp(tree::Type::PTR, temp_map.newtemp());
-                auto array_sl = array_decl_helper(var_decl, array_temp);
-                auto array_init = new tree::Eseq(tree::Type::PTR, new tree::Seq(array_sl), array_temp);
+                auto arr_temp = new tree::TempExp(tree::Type::PTR, temp_map.newtemp());
+                auto array_sl = array_decl_helper(var_decl, arr_temp);
+                auto array_init = new tree::Eseq(tree::Type::PTR, new tree::Seq(array_sl), arr_temp);
                 // 然后把数组地址存入成员变量
                 auto var_mem
                     = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(var_offset)));
@@ -750,22 +750,36 @@ Tr_cx* comp_helper(Temp_map& temp_map, tree::Exp* left, tree::Exp* right, string
 // EXP: EXP '[' EXP ']'
 void ASTToTreeVisitor::visit(fdmj::ArrayExp* node)
 {
+    bool arr_pre = false, index_pre = false;
+
     node->arr->accept(*this);
-    auto arr_exp = newExp->unEx(&temp_map);
+    tree::Exp* arr_exp = newExp->unEx(&temp_map)->exp;
+
+    tree::Exp* arr_temp = nullptr;
+    if (arr_exp->getTreeKind() == Kind::TEMPEXP)
+        arr_temp = arr_exp;
+    else {
+        arr_temp = new tree::TempExp(tree::Type::PTR, temp_map.newtemp());
+        arr_pre = true; // 如果数组不是值, 则需要先对数组求值
+    }
 
     node->index->accept(*this);
+    tree::Exp* index_exp = newExp->unEx(&temp_map)->exp;
+
     tree::Exp* index_temp = nullptr;
-    if (newExp->getKind() == Tr_Exp::TR_EX) // 如果索引是值, 则直接使用
-        index_temp = newExp->unEx(&temp_map)->exp;
-    else // 如果索引不是值, 则需要先对索引求值
+    if (index_exp->getTreeKind() == Kind::TEMPEXP || index_exp->getTreeKind() == Kind::CONST)
+        index_temp = index_exp;
+    else {
         index_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
+        index_pre = true; // 如果索引不是值, 则需要先对索引求值
+    }
 
     // 取出下标 (越界检查)
     auto i_sl = new vector<tree::Stm*>();
 
     // 取出size
     tree::TempExp* size_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
-    tree::Move* size_move = new tree::Move(size_temp, new tree::Mem(tree::Type::INT, arr_exp->exp));
+    tree::Move* size_move = new tree::Move(size_temp, new tree::Mem(tree::Type::INT, arr_temp));
     i_sl->push_back(size_move);
 
     // index >= size
@@ -795,18 +809,21 @@ void ASTToTreeVisitor::visit(fdmj::ArrayExp* node)
     auto i_offset = new tree::Binop(tree::Type::INT, "*", i_plus_one, new tree::Const(int_length));
 
     // *(arr+(i+1)*4)
-    auto arr_offset = new tree::Binop(tree::Type::PTR, "+", arr_exp->exp, i_offset);
+    auto arr_offset = new tree::Binop(tree::Type::PTR, "+", arr_temp, i_offset);
     auto arr_mem = new tree::Mem(tree::Type::INT, arr_offset);
 
-    // 如果索引是值, 则直接返回
-    if (newExp->getKind() == Tr_Exp::TR_EX) {
+    // 如果数组和索引都是值, 则直接返回
+    if (!arr_pre && !index_pre) {
         newExp = new Tr_ex(arr_mem);
     }
-    // 如果索引不是值, 则需要先对索引求值
+    // 否则需要先求值
     else {
-        auto index_move = new tree::Move(index_temp, newExp->unEx(&temp_map)->exp);
-        auto index_seq = new tree::Seq(new vector<tree::Stm*> { index_move });
-        newExp = new Tr_ex(new tree::Eseq(tree::Type::INT, index_seq, arr_mem));
+        auto pre_sl = new vector<tree::Stm*>();
+        if (arr_pre)
+            pre_sl->push_back(new tree::Move(arr_temp, arr_exp));
+        if (index_pre)
+            pre_sl->push_back(new tree::Move(index_temp, index_exp));
+        newExp = new Tr_ex(new tree::Eseq(tree::Type::INT, new tree::Seq(pre_sl), arr_mem));
     }
 }
 
@@ -1100,15 +1117,18 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
 
 // 表达式->this指针: this
 // EXP: THIS
-void ASTToTreeVisitor::visit(fdmj::This* node)
-{
-
-    // TODO
-}
+void ASTToTreeVisitor::visit(fdmj::This* node) { }
 
 // 表达式->类变量访问: 类对象.变量名
 // EXP: EXP '.' ID
-void ASTToTreeVisitor::visit(fdmj::ClassVar* node) { }
+void ASTToTreeVisitor::visit(fdmj::ClassVar* node)
+{
+    auto class_table = (*class_table_map)[class_name];
+    auto var_name = node->id->id;
+    auto var_offset = class_table->get_var_pos(var_name);
+    auto var_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", newExp->unEx(&temp_map)->exp, new tree::Const(var_offset)));
+    newExp = new Tr_ex(var_mem);
+}
 
 // 表达式->类方法调用: 类对象.方法名(形参列表)
 // EXP: EXP '.' ID '(' EXPLIST ')'
