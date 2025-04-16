@@ -24,7 +24,7 @@ Class_table* generate_class_table(AST_Semant_Map* semant_map) { return nullptr; 
 Method_var_table* generate_method_var_table(string class_name, string method_name, Name_Maps* nm, Temp_map* tm)
 {
     auto var_temp_map = new map<string, tree::Temp*>; // 变量名->变量结点
-    auto var_type_map = new map<string, tree::Type>;   // 变量名->类型结点
+    auto var_type_map = new map<string, tree::Type>;  // 变量名->类型结点
 
     // 首先填充方法参数
     vector<string>* method_formal_list = nm->get_method_formal_list(class_name, method_name);
@@ -246,13 +246,8 @@ void ASTToTreeVisitor::visit(fdmj::Nested* node)
     newNodes.push_back(new tree::Seq(sl));
 }
 
-// 语句->if语句: if (条件表达式) 语句1 [else 语句2]
-// STM: IF '(' EXP ')' STM ELSE STM
-//    | IF '(' EXP ')' STM
-void ASTToTreeVisitor::visit(fdmj::If* node)
+vector<tree::Stm*>* if_helper(tree::Temp_map& temp_map, Tr_Exp* exp, tree::Stm* stm1, tree::Stm* stm2)
 {
-    node->exp->accept(*this);
-    auto exp_cx = newExp->unCx(&temp_map);
 
     // exp_cx:
     //   True_patch_list: *L1
@@ -266,6 +261,7 @@ void ASTToTreeVisitor::visit(fdmj::If* node)
     //   stm2
     //   L_end
 
+    auto exp_cx = exp->unCx(&temp_map);
     auto L1 = exp_cx->true_list;
     auto L2 = exp_cx->false_list;
     auto L_true = temp_map.newlabel();
@@ -280,21 +276,37 @@ void ASTToTreeVisitor::visit(fdmj::If* node)
     sl->push_back(exp_cx->stm);
     sl->push_back(new tree::LabelStm(L_true));
 
-    node->stm1->accept(*this);
-    auto stm1 = static_cast<tree::Stm*>(newNodes[0]);
-    newNodes.clear();
     sl->push_back(stm1);
     sl->push_back(new tree::Jump(L_end));
 
     sl->push_back(new tree::LabelStm(L_false));
+    if (stm2)
+        sl->push_back(stm2);
+
+    sl->push_back(new tree::LabelStm(L_end));
+    return sl;
+}
+
+// 语句->if语句: if (条件表达式) 语句1 [else 语句2]
+// STM: IF '(' EXP ')' STM ELSE STM
+//    | IF '(' EXP ')' STM
+void ASTToTreeVisitor::visit(fdmj::If* node)
+{
+    node->exp->accept(*this);
+    Tr_Exp* exp = newExp;
+
+    node->stm1->accept(*this);
+    tree::Stm* stm1 = static_cast<tree::Stm*>(newNodes[0]);
+    newNodes.clear();
+
+    tree::Stm* stm2 = nullptr;
     if (node->stm2) {
         node->stm2->accept(*this);
         auto stm2 = static_cast<tree::Stm*>(newNodes[0]);
         newNodes.clear();
-        sl->push_back(stm2);
     }
 
-    sl->push_back(new tree::LabelStm(L_end));
+    auto sl = if_helper(temp_map, exp, stm1, stm2);
     newNodes.push_back(new tree::Seq(sl));
 }
 
@@ -341,6 +353,8 @@ static vector<tree::Stm*>* while_helper(tree::Temp_map& temp_map, Tr_Exp* exp, v
 void ASTToTreeVisitor::visit(fdmj::While* node)
 {
     node->exp->accept(*this);
+    auto exp = newExp;
+
     vector<tree::Stm*> body;
     if (node->stm) {
         node->stm->accept(*this);
@@ -350,7 +364,7 @@ void ASTToTreeVisitor::visit(fdmj::While* node)
         newNodes.clear();
     }
 
-    auto sl = while_helper(temp_map, newExp, body);
+    auto sl = while_helper(temp_map, exp, body);
     newNodes.push_back(new tree::Seq(sl));
 }
 
@@ -418,7 +432,18 @@ void ASTToTreeVisitor::visit(fdmj::PutCh* node)
 
 // 语句->打印数组语句: putarray(长度表达式, 数组表达式);
 // STM: PUTARRAY '(' EXP ',' EXP ')' ';'
-void ASTToTreeVisitor::visit(fdmj::PutArray* node) { }
+void ASTToTreeVisitor::visit(fdmj::PutArray* node)
+{
+    node->n->accept(*this);
+    auto n_exp = newExp->unEx(&temp_map)->exp;
+
+    node->arr->accept(*this);
+    auto arr_exp = newExp->unEx(&temp_map)->exp;
+
+    auto args = new vector<tree::Exp*> { n_exp, arr_exp };
+    auto ext_call = new tree::ExtCall(tree::Type::INT, "putarray", args);
+    newNodes.push_back(new tree::ExpStm(ext_call));
+}
 
 // 语句->开始计时语句: starttime();
 // STM: STARTTIME '(' ')' ';'
@@ -478,8 +503,9 @@ void ASTToTreeVisitor::visit(fdmj::Esc* node)
 // EXP: ID
 void ASTToTreeVisitor::visit(fdmj::IdExp* node)
 {
-    auto temp = method_var_table->get_var_temp(node->id);
-    newExp = new Tr_ex(new tree::TempExp(tree::Type::INT, temp));
+    tree::Type type = method_var_table->get_var_type(node->id);
+    tree::Temp* temp = method_var_table->get_var_temp(node->id);
+    newExp = new Tr_ex(new tree::TempExp(type, temp));
 }
 
 // 表达式->整数: num
@@ -498,19 +524,80 @@ void ASTToTreeVisitor::visit(fdmj::BoolExp* node)
     newExp = new Tr_ex(new tree::Const(val));
 }
 
+// 提前一下, 编译器眼瞎
+Tr_cx* comp_helper(Temp_map& temp_map, tree::Exp* left, tree::Exp* right, string op);
+
 // 表达式->数组访问: 数组表达式[下标表达式]
 // EXP: EXP '[' EXP ']'
-void ASTToTreeVisitor::visit(fdmj::ArrayExp* node) { }
+void ASTToTreeVisitor::visit(fdmj::ArrayExp* node)
+{
+    node->arr->accept(*this);
+    auto arr_exp = newExp->unEx(&temp_map);
+
+    node->index->accept(*this);
+    tree::Exp* index_temp = nullptr;
+    if (newExp->getKind() == Tr_Exp::TR_EX) // 如果索引是值, 则直接使用
+        index_temp = newExp->unEx(&temp_map)->exp;
+    else // 如果索引不是值, 则需要先对索引求值
+        index_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
+
+    // 取出下标 (越界检查)
+    auto i_sl = new vector<tree::Stm*>();
+
+    // 取出size
+    tree::TempExp* size_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
+    tree::Move* size_move = new tree::Move(size_temp, new tree::Mem(tree::Type::INT, arr_exp->exp));
+    i_sl->push_back(size_move);
+
+    // index >= size
+    Tr_cx* zero_geq_size = comp_helper(temp_map, index_temp, size_temp, ">=");
+
+    // exit(-1)
+    auto args = new vector<tree::Exp*> { new tree::Const(-1) };
+    auto exit_stm = new tree::ExpStm(new tree::ExtCall(tree::Type::INT, "exit", args));
+
+    // if index>=size ? exit(-1) (判断长度为正数)
+    auto L1 = zero_geq_size->true_list;
+    auto L2 = zero_geq_size->false_list;
+    auto L_true = temp_map.newlabel();
+    auto L_false = temp_map.newlabel();
+    L1->patch(L_true);
+    L2->patch(L_false);
+    i_sl->push_back(zero_geq_size->stm);
+    i_sl->push_back(new tree::LabelStm(L_true));
+    i_sl->push_back(exit_stm);
+    i_sl->push_back(new tree::LabelStm(L_false));
+    auto i_exp = new tree::Eseq(tree::Type::INT, new tree::Seq(i_sl), index_temp);
+
+    // (i+1)
+    auto i_plus_one = new tree::Binop(tree::Type::INT, "+", i_exp, new tree::Const(1));
+
+    // (i+1)*int_length
+    int int_length = Compiler_Config::get("int_length");
+    auto i_offset = new tree::Binop(tree::Type::INT, "*", i_plus_one, new tree::Const(int_length));
+
+    // *(arr+(i+1)*4)
+    auto arr_offset = new tree::Binop(tree::Type::PTR, "+", arr_exp->exp, i_offset);
+    auto arr_mem = new tree::Mem(tree::Type::INT, arr_offset);
+
+    // 如果索引是值, 则直接返回
+    if (newExp->getKind() == Tr_Exp::TR_EX) {
+        newExp = new Tr_ex(arr_mem);
+    }
+    // 如果索引不是值, 则需要先对索引求值
+    else {
+        auto index_move = new tree::Move(index_temp, newExp->unEx(&temp_map)->exp);
+        auto index_seq = new tree::Seq(new vector<tree::Stm*> { index_move });
+        newExp = new Tr_ex(new tree::Eseq(tree::Type::INT, index_seq, arr_mem));
+    }
+}
 
 // 表达式->操作符: op
 // EXP: [+-*/ COMP && ||] [-!]
 void ASTToTreeVisitor::visit(fdmj::OpExp* node) { }
 
-Tr_cx* comp_helper(Temp_map& temp_map, Tr_Exp* left_tr, Tr_Exp* right_tr, string op)
+Tr_cx* comp_helper(Temp_map& temp_map, tree::Exp* left, tree::Exp* right, string op)
 {
-    auto left = left_tr->unEx(&temp_map)->exp;
-    auto right = right_tr->unEx(&temp_map)->exp;
-
     // 构造CJump
     Label* t = temp_map.newlabel();
     Label* f = temp_map.newlabel();
@@ -543,12 +630,98 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
     if (find(algo_op.begin(), algo_op.end(), op) != algo_op.end()) {
         auto left = left_tr->unEx(&temp_map)->exp;
         auto right = right_tr->unEx(&temp_map)->exp;
-        newExp = new Tr_ex(new tree::Binop(tree::Type::INT, op, left, right));
+
+        // 整型
+        if (left->type == tree::Type::INT && right->type == tree::Type::INT)
+            newExp = new Tr_ex(new tree::Binop(tree::Type::INT, op, left, right));
+
+        // 整型数组
+        else {
+            vector<tree::Stm*>* sl = new vector<tree::Stm*>();
+
+            // 获取a.size
+            auto a_size_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
+            auto a_size_mem = new tree::Mem(tree::Type::INT, left);
+            sl->push_back(new tree::Move(a_size_temp, a_size_mem));
+
+            // 获取b.size
+            auto b_size_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
+            auto b_size_mem = new tree::Mem(tree::Type::INT, right);
+            sl->push_back(new tree::Move(b_size_temp, b_size_mem));
+
+            // a.size!=b.size
+            Tr_cx* size_neq = comp_helper(temp_map, a_size_temp, b_size_temp, "!=");
+
+            // exit(-1)
+            auto args = new vector<tree::Exp*> { new tree::Const(-1) };
+            auto exit_stm = new tree::ExpStm(new tree::ExtCall(tree::Type::INT, "exit", args));
+
+            // if a.size!=b.size ? exit(-1)
+            auto L1 = size_neq->true_list;
+            auto L2 = size_neq->false_list;
+            auto L_true = temp_map.newlabel();
+            auto L_false = temp_map.newlabel();
+            L1->patch(L_true);
+            L2->patch(L_false);
+            sl->push_back(size_neq->stm);
+            sl->push_back(new tree::LabelStm(L_true));
+            sl->push_back(exit_stm);
+            sl->push_back(new tree::LabelStm(L_false));
+
+            // 创建暂存数组 int[a.size] t
+            auto int_length = Compiler_Config::get("int_length");
+            auto t_temp = new tree::TempExp(tree::Type::PTR, temp_map.newtemp());
+            auto t_size_binop = new tree::Binop(tree::Type::INT, "*",
+                new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
+            auto t_malloc = new tree::ExtCall(tree::Type::PTR, "malloc", new vector<tree::Exp*> { t_size_binop });
+            sl->push_back(new tree::Move(t_temp, t_malloc));
+
+            // 设置暂存数组大小 t.size=a.size
+            auto t_size_mem = new tree::Mem(tree::Type::INT, t_temp);
+            sl->push_back(new tree::Move(t_size_mem, a_size_temp));
+
+            // i=int_length
+            auto i_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
+            sl->push_back(new tree::Move(i_temp, new tree::Const(int_length)));
+
+            // end=(a.size+1)*4
+            auto end_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
+            auto end_binop = new tree::Binop(tree::Type::INT, "*",
+                new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
+            sl->push_back(new tree::Move(end_temp, end_binop));
+
+            // while(i<end)
+            //   *(t+i)=*(a+i)+*(b+i)
+            //  i=i+int_length
+            auto i_lt_end = comp_helper(temp_map, i_temp, end_temp, "<");
+
+            vector<tree::Stm*> body;
+
+            // *(t+i)=*(a+i)+*(b+i)
+            auto t_i_mem = new tree::Mem(tree::Type::INT, new tree::Binop(tree::Type::PTR, "+", t_temp, i_temp));
+            auto a_i_mem = new tree::Mem(tree::Type::INT, new tree::Binop(tree::Type::PTR, "+", left, i_temp));
+            auto b_i_mem = new tree::Mem(tree::Type::INT, new tree::Binop(tree::Type::PTR, "+", right, i_temp));
+            auto t_i_binop = new tree::Binop(tree::Type::INT, op, a_i_mem, b_i_mem);
+            body.push_back(new tree::Move(t_i_mem, t_i_binop));
+
+            // i=i+int_length
+            auto i_plus = new tree::Binop(tree::Type::INT, "+", i_temp, new tree::Const(int_length));
+            body.push_back(new tree::Move(i_temp, i_plus));
+
+            // 生成while循环 合并到sl
+            auto sl_while = while_helper(temp_map, i_lt_end, body);
+            for (auto& stm : *sl_while)
+                sl->push_back(stm);
+            newExp = new Tr_ex(new tree::Eseq(tree::Type::INT, new tree::Seq(sl), t_temp));
+        }
+
     }
 
     // 比较运算
     else if (find(comp_op.begin(), comp_op.end(), op) != comp_op.end()) {
-        newExp = comp_helper(temp_map, left_tr, right_tr, op);
+        auto left = left_tr->unEx(&temp_map)->exp;
+        auto right = right_tr->unEx(&temp_map)->exp;
+        newExp = comp_helper(temp_map, left, right, op);
     }
 
     // Tr_cx1:
@@ -661,9 +834,9 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
             auto t_size_mem = new tree::Mem(tree::Type::INT, t_temp);
             sl->push_back(new tree::Move(t_size_mem, a_size_temp));
 
-            // 初始化下标索引i=4
+            // 初始化下标索引i=int_length
             auto i_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
-            auto i_const = new tree::Const(4);
+            auto i_const = new tree::Const(int_length);
             sl->push_back(new tree::Move(i_temp, i_const));
 
             // 初始化边界end=(size+1)*4
@@ -672,13 +845,11 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
                 new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
             sl->push_back(new tree::Move(end_temp, end_binop));
 
-            // while(i&lt;end)
+            // while(i<end)
             //   *(t+i)=0-*(a+i)
-            //   i=i+4
+            //   i=i+int_length
             // auto sl = while_helper(tree::Temp_map& temp_map, Tr_Exp* exp, vector<tree::Stm*> body)
-            // Tr_cx* comp_helper(Temp_map& temp_map, Tr_Exp* left_tr, Tr_Exp* right_tr, string op)
-
-            auto i_lt_end = comp_helper(temp_map, new Tr_ex(i_temp), new Tr_ex(end_temp), "<");
+            auto i_lt_end = comp_helper(temp_map, i_temp, end_temp, "<");
 
             vector<tree::Stm*> body;
 
@@ -688,8 +859,8 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
             auto minus_binop = new tree::Binop(tree::Type::INT, "-", new tree::Const(0), a_i_mem);
             body.push_back(new tree::Move(t_i_mem, minus_binop));
 
-            // i=i+4
-            auto i_plus = new tree::Binop(tree::Type::INT, "+", i_temp, new tree::Const(4));
+            // i=i+int_length
+            auto i_plus = new tree::Binop(tree::Type::INT, "+", i_temp, new tree::Const(int_length));
             body.push_back(new tree::Move(i_temp, i_plus));
 
             // 生成while循环 合并到sl
@@ -741,8 +912,20 @@ void ASTToTreeVisitor::visit(fdmj::GetCh* node)
 
 // 表达式->读取数组: getarray(数组变量)
 // EXP: GETARRAY '(' EXP ')'
-void ASTToTreeVisitor::visit(fdmj::GetArray* node) { }
+void ASTToTreeVisitor::visit(fdmj::GetArray* node)
+{
+    node->exp->accept(*this);
+    auto args = new vector<tree::Exp*> { newExp->unEx(&temp_map)->exp };
+    auto ext_call = new tree::ExtCall(tree::Type::INT, "getarray", args);
+    newExp = new Tr_ex(ext_call);
+}
 
 // 表达式->获取数组长度: length(数组表达式)
 // EXP: LENGTH '(' EXP ')'
-void ASTToTreeVisitor::visit(fdmj::Length* node) { }
+void ASTToTreeVisitor::visit(fdmj::Length* node)
+{
+    node->exp->accept(*this);
+    auto args = new vector<tree::Exp*> { newExp->unEx(&temp_map)->exp };
+    auto ext_call = new tree::ExtCall(tree::Type::INT, "length", args);
+    newExp = new Tr_ex(ext_call);
+}

@@ -56,7 +56,7 @@ bool AST_Semant_Visitor::is_assignable(AST_Semant* left, AST_Semant* right)
     if (left->get_type() == TypeKind::ARRAY) {
         int left_arity = get<int>(left->get_type_par());
         int right_arity = get<int>(right->get_type_par());
-        if (left_arity != right_arity)
+        if (left_arity && right_arity && left_arity != right_arity)
             return false;
     }
     return true;
@@ -87,7 +87,7 @@ bool AST_Semant_Visitor::is_assignable(fdmj::Type* left, AST_Semant* right)
     if (left->typeKind == TypeKind::ARRAY) {
         int left_arity = left->arity->val;
         int right_arity = get<int>(right->get_type_par());
-        if (left_arity != right_arity)
+        if (left_arity && right_arity && left_arity != right_arity)
             return false;
     }
     return true;
@@ -245,7 +245,8 @@ void AST_Semant_Visitor::visit(fdmj::If* node)
 
     // 检查Exp为int
     AST_Semant* exp_semant = semant_map->getSemant(node->exp);
-    if (exp_semant == nullptr || exp_semant->get_kind() != AST_Semant::Kind::Value || exp_semant->get_type() != TypeKind::INT) {
+    if (exp_semant == nullptr || exp_semant->get_kind() != AST_Semant::Kind::Value
+        || exp_semant->get_type() != TypeKind::INT) {
         cerr << node->exp->getPos()->print() << endl;
         cerr << "- if条件表达式不是int类型" << endl;
         exit(1);
@@ -656,7 +657,8 @@ void AST_Semant_Visitor::visit(fdmj::BinaryOp* node)
     }
 
     // 返回Exp类型
-    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, left_semant->get_type(), left_semant->get_type_par(), false));
+    semant_map->setSemant(
+        node, new AST_Semant(AST_Semant::Kind::Value, left_semant->get_type(), left_semant->get_type_par(), false));
 }
 
 // 表达式->一元操作: OP 表达式
@@ -684,7 +686,8 @@ void AST_Semant_Visitor::visit(fdmj::UnaryOp* node)
     }
 
     // 返回Exp类型
-    semant_map->setSemant(node, new AST_Semant(AST_Semant::Kind::Value, exp_semant->get_type(), exp_semant->get_type_par(), false));
+    semant_map->setSemant(
+        node, new AST_Semant(AST_Semant::Kind::Value, exp_semant->get_type(), exp_semant->get_type_par(), false));
 }
 
 // 表达式->this指针: this

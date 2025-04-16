@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Program>
-    <FunctionDeclaration name="_^main^_^main" return_type="INT" last_temp="112" last_label="107">
+    <FunctionDeclaration name="_^main^_^main" return_type="INT" last_temp="108" last_label="113">
         <Blocks>
-            <Block entry_label="107">
+            <Block entry_label="113">
                 <Sequence>
-                    <Label label="107"/>
-
-                    <Move> int[4] a
+                    <Label label="113"/>
+                    <Move>
                         <Temp type="PTR" temp="100"/>
                         <ExtCall extfun="malloc" type="PTR">
                             <Arguments>
@@ -14,14 +13,13 @@
                             </Arguments>
                         </ExtCall>
                     </Move>
-                    <Move> a.size=4
+                    <Move>
                         <Memory type="INT">
                             <Temp type="PTR" temp="100"/>
                         </Memory>
                         <Const value="4"/>
                     </Move>
-
-                    <Move> a[0]=1
+                    <Move>
                         <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="100"/>
@@ -30,7 +28,7 @@
                         </Memory>
                         <Const value="1"/>
                     </Move>
-                    <Move> a[1]=2
+                    <Move>
                         <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="100"/>
@@ -39,7 +37,7 @@
                         </Memory>
                         <Const value="2"/>
                     </Move>
-                    <Move> a[2]=3
+                    <Move>
                         <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="100"/>
@@ -48,7 +46,7 @@
                         </Memory>
                         <Const value="3"/>
                     </Move>
-                    <Move> a[3]=4
+                    <Move>
                         <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="100"/>
@@ -57,8 +55,7 @@
                         </Memory>
                         <Const value="4"/>
                     </Move>
-                    
-                    <Move> int[4] b
+                    <Move>
                         <Temp type="PTR" temp="101"/>
                         <ExtCall extfun="malloc" type="PTR">
                             <Arguments>
@@ -66,14 +63,13 @@
                             </Arguments>
                         </ExtCall>
                     </Move>
-                    <Move> b.size=4
+                    <Move>
                         <Memory type="INT">
                             <Temp type="PTR" temp="101"/>
                         </Memory>
                         <Const value="4"/>
                     </Move>
-
-                    <Move> b[0]=9
+                    <Move>
                         <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="101"/>
@@ -82,7 +78,7 @@
                         </Memory>
                         <Const value="9"/>
                     </Move>
-                    <Move> b[1]=8
+                    <Move>
                         <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="101"/>
@@ -91,7 +87,7 @@
                         </Memory>
                         <Const value="8"/>
                     </Move>
-                    <Move> b[2]=7
+                    <Move>
                         <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="101"/>
@@ -100,7 +96,7 @@
                         </Memory>
                         <Const value="7"/>
                     </Move>
-                    <Move> b[3]=6
+                    <Move>
                         <Memory type="INT">
                             <BinOp op="+" type="PTR">
                                 <Temp type="PTR" temp="101"/>
@@ -109,8 +105,7 @@
                         </Memory>
                         <Const value="6"/>
                     </Move>
-
-                    <Move> int[0] c
+                    <Move>
                         <Temp type="PTR" temp="102"/>
                         <ExtCall extfun="malloc" type="PTR">
                             <Arguments>
@@ -118,38 +113,33 @@
                             </Arguments>
                         </ExtCall>
                     </Move>
-                    <Move> c.size=0
+                    <Move>
                         <Memory type="INT">
                             <Temp type="PTR" temp="102"/>
                         </Memory>
                         <Const value="0"/>
                     </Move>
-
-                    <Move> c=a+b
-                        <Temp type="PTR" temp="102"/> c
-                        <ESeq> a+b (t)
+                    <Move>
+                        <Temp type="PTR" temp="102"/>
+                        <ESeq>
                             <Sequence>
-                                <Move> a.size
-                                    <Temp type="INT" temp="107"/> a.size
+                                <Move>
+                                    <Temp type="INT" temp="103"/>
                                     <Memory type="INT">
                                         <Temp type="PTR" temp="100"/>
                                     </Memory>
                                 </Move>
-                                <Move> b.size
-                                    <Temp type="INT" temp="108"/> b.size
+                                <Move>
+                                    <Temp type="INT" temp="104"/>
                                     <Memory type="INT">
                                         <Temp type="PTR" temp="101"/>
                                     </Memory>
                                 </Move>
-
-                                assert(a.size==b.size)
-                                <CJump relop="!=" true="100" false="101">
-                                    <Temp type="INT" temp="107"/> a.size
-                                    <Temp type="INT" temp="108"/> b.size
+                                <CJump relop="!=" true="102" false="103">
+                                    <Temp type="INT" temp="103"/>
+                                    <Temp type="INT" temp="104"/>
                                 </CJump>
-
-                                错误退出
-                                <Label label="100"/>
+                                <Label label="102"/>
                                 <ExpressionStatement>
                                     <ExtCall extfun="exit" type="INT">
                                         <Arguments>
@@ -157,16 +147,14 @@
                                         </Arguments>
                                     </ExtCall>
                                 </ExpressionStatement>
-
-                                
-                                <Label label="101"/>
-                                <Move> int[a.size] t
-                                    <Temp type="PTR" temp="109"/>
+                                <Label label="103"/>
+                                <Move>
+                                    <Temp type="PTR" temp="105"/>
                                     <ExtCall extfun="malloc" type="PTR">
                                         <Arguments>
                                             <BinOp op="*" type="INT">
                                                 <BinOp op="+" type="INT">
-                                                    <Temp type="INT" temp="107"/> a.size
+                                                    <Temp type="INT" temp="103"/>
                                                     <Const value="1"/>
                                                 </BinOp>
                                                 <Const value="4"/>
@@ -174,72 +162,65 @@
                                         </Arguments>
                                     </ExtCall>
                                 </Move>
-                                <Move> t.size=a.size
-                                    <Memory type="PTR">
-                                        <Temp type="PTR" temp="109"/>
+                                <Move>
+                                    <Memory type="INT">
+                                        <Temp type="PTR" temp="105"/>
                                     </Memory>
-                                    <Temp type="INT" temp="107"/> a.size
+                                    <Temp type="INT" temp="103"/>
                                 </Move>
-
-                                <Move> i=4
-                                    <Temp type="INT" temp="110"/>
+                                <Move>
+                                    <Temp type="INT" temp="106"/>
                                     <Const value="4"/>
                                 </Move>
-                                <Move> end=(a.size+1)*4
-                                    <Temp type="INT" temp="111"/>
+                                <Move>
+                                    <Temp type="INT" temp="107"/>
                                     <BinOp op="*" type="INT">
                                         <BinOp op="+" type="INT">
-                                            <Temp type="INT" temp="107"/> a.size
+                                            <Temp type="INT" temp="103"/>
                                             <Const value="1"/>
                                         </BinOp>
                                         <Const value="4"/>
                                     </BinOp>
                                 </Move>
-
-                                while(i&lt;end)
-                                    *(t+i)=*(a+i)+*(b+i)
-                                    i=i+4
-                                <Label label="102"/> L_while
-                                <CJump relop="&lt;" true="103" false="104">
-                                    <Temp type="INT" temp="110"/>
-                                    <Temp type="INT" temp="111"/>
+                                <Label label="106"/>
+                                <CJump relop="&lt;" true="107" false="108">
+                                    <Temp type="INT" temp="106"/>
+                                    <Temp type="INT" temp="107"/>
                                 </CJump>
-                                <Label label="103"/> L_
+                                <Label label="107"/>
                                 <Move>
-                                    <Memory type="PTR">
+                                    <Memory type="INT">
                                         <BinOp op="+" type="PTR">
-                                            <Temp type="PTR" temp="109"/>
-                                            <Temp type="INT" temp="110"/>
+                                            <Temp type="PTR" temp="105"/>
+                                            <Temp type="INT" temp="106"/>
                                         </BinOp>
                                     </Memory>
                                     <BinOp op="+" type="INT">
                                         <Memory type="INT">
                                             <BinOp op="+" type="PTR">
                                                 <Temp type="PTR" temp="100"/>
-                                                <Temp type="INT" temp="110"/>
+                                                <Temp type="INT" temp="106"/>
                                             </BinOp>
                                         </Memory>
                                         <Memory type="INT">
                                             <BinOp op="+" type="PTR">
                                                 <Temp type="PTR" temp="101"/>
-                                                <Temp type="INT" temp="110"/>
+                                                <Temp type="INT" temp="106"/>
                                             </BinOp>
                                         </Memory>
                                     </BinOp>
                                 </Move>
                                 <Move>
-                                    <Temp type="INT" temp="110"/>
+                                    <Temp type="INT" temp="106"/>
                                     <BinOp op="+" type="INT">
-                                        <Temp type="INT" temp="110"/>
+                                        <Temp type="INT" temp="106"/>
                                         <Const value="4"/>
                                     </BinOp>
                                 </Move>
-                                <Jump label="102"/>
-                                <Label label="104"/>
+                                <Jump label="106"/>
+                                <Label label="108"/>
                             </Sequence>
-
-                            返回新指针t
-                            <Temp type="PTR" temp="109"/>
+                            <Temp type="PTR" temp="105"/>
                         </ESeq>
                     </Move>
                     <Return>
@@ -251,16 +232,16 @@
                                         <ESeq>
                                             <Sequence>
                                                 <Move>
-                                                    <Temp type="INT" temp="112"/>
+                                                    <Temp type="INT" temp="108"/>
                                                     <Memory type="INT">
                                                         <Temp type="PTR" temp="102"/>
                                                     </Memory>
                                                 </Move>
-                                                <CJump relop="&gt;=" true="105" false="106">
+                                                <CJump relop="&gt;=" true="111" false="112">
                                                     <Const value="0"/>
-                                                    <Temp type="INT" temp="112"/>
+                                                    <Temp type="INT" temp="108"/>
                                                 </CJump>
-                                                <Label label="105"/>
+                                                <Label label="111"/>
                                                 <ExpressionStatement>
                                                     <ExtCall extfun="exit" type="INT">
                                                         <Arguments>
@@ -268,7 +249,7 @@
                                                         </Arguments>
                                                     </ExtCall>
                                                 </ExpressionStatement>
-                                                <Label label="106"/>
+                                                <Label label="112"/>
                                             </Sequence>
                                             <Const value="0"/>
                                         </ESeq>

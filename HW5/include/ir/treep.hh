@@ -64,7 +64,27 @@ public:
     virtual void visit(ExtCall* extcall) = 0;
 };
 
-enum class Kind { PROGRAM, FUNCDECL, BLOCK, JUMP, CJUMP, MOVE, SEQ, LABELSTM, RETURN, PHI, EXPSTM, BINOP, MEM, TEMPEXP, ESEQ, NAME, CONST, CALL, EXTCALL };
+enum class Kind {
+    PROGRAM,
+    FUNCDECL,
+    BLOCK,
+    JUMP,
+    CJUMP,
+    MOVE,
+    SEQ,
+    LABELSTM,
+    RETURN,
+    PHI,
+    EXPSTM,
+    BINOP,
+    MEM,
+    TEMPEXP,
+    ESEQ,
+    NAME,
+    CONST,
+    CALL,
+    EXTCALL
+};
 
 // forward declaration (declaration in treep.cc)
 string kindToString(Kind kind);
@@ -269,7 +289,8 @@ class Mem : public Exp {
 public:
     Exp* mem;
     Mem(Type t, Exp* mem)
-        :  mem(mem) { };
+        : Exp(t)
+        , mem(mem) { };
     Kind getTreeKind() { return Kind::MEM; }
     void accept(Visitor& v) { v.visit(this); }
 };
@@ -297,7 +318,6 @@ public:
     Kind getTreeKind() { return Kind::ESEQ; }
     void accept(Visitor& v) { v.visit(this); }
 };
-
 
 class Name : public Exp { // convert a label to a ptr (address)
 public:
