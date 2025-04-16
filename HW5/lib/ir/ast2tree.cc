@@ -121,7 +121,7 @@ Method_var_table* generate_method_var_table(string class_name, string method_nam
     return new Method_var_table(var_temp_map, var_type_map);
 }
 
-// TODO
+// 对外函数接口
 tree::Program* ast2tree(fdmj::Program* prog, AST_Semant_Map* semant_map)
 {
     ASTToTreeVisitor visitor = ASTToTreeVisitor(semant_map);
