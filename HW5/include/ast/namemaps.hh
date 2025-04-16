@@ -30,6 +30,7 @@ public:
 
     bool detected_loop(map<string, string> classHierachy);
     bool add_class_hiearchy(string class_name, string parent_name); // 添加类继承关系
+    string get_parent(string class_name);                           // 获取类的父类
     vector<string>* get_ancestors(string class_name);               // 获取类的所有祖先类
 
     // 类->成员变量

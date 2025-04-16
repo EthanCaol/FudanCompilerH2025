@@ -19,7 +19,7 @@ class Patch_list;
 class ASTToTreeVisitor;
 
 tree::Program* ast2tree(fdmj::Program* prog, AST_Semant_Map* semant_map);
-Class_table* generate_class_table(AST_Semant_Map* semant_map);
+map<string, Class_table*>* gen_class_table_map(Name_Maps* name_maps);
 Method_var_table* generate_method_var_table(string class_name, string method_name, Name_Maps* nm, Temp_map* tm);
 
 // 类表将每个类变量和方法映射到一个地址偏移量
@@ -27,20 +27,38 @@ Method_var_table* generate_method_var_table(string class_name, string method_nam
 // 即所有类使用相同的类表, 所有类的所有可能变量和方法都列在同一记录布局中
 class Class_table {
 public:
-    map<string, int> var_pos_map;    // 变量位置映射
-    map<string, int> method_pos_map; // 方法位置映射
-    Class_table()
+    string class_name = "";     // 类名
+    string par_class_name = ""; // 父类名
+
+    int offset = 0;                   // 偏移量
+    map<string, int>* var_pos_map;    // 变量位置映射
+    map<string, int>* method_pos_map; // 方法位置映射
+
+    Class_table(string class_name, string par_class_name, int offset, map<string, int>* var_pos_map,
+        map<string, int>* method_pos_map)
+        : class_name(class_name)
+        , par_class_name(par_class_name)
+        , offset(offset)
+        , var_pos_map(var_pos_map)
+        , method_pos_map(method_pos_map) { };
+    ~Class_table() { };
+
+    int get_var_pos(string var_name)
     {
-        var_pos_map = map<string, int>();
-        method_pos_map = map<string, int>();
+        if (var_pos_map->find(var_name) == var_pos_map->end()) {
+            cerr << "get_var_pos: " << var_name << "不存在" << endl;
+            exit(-1);
+        }
+        return (*var_pos_map)[var_name];
     }
-    ~Class_table()
+    int get_method_pos(string method_name)
     {
-        var_pos_map.clear();
-        method_pos_map.clear();
+        if (method_pos_map->find(method_name) == method_pos_map->end()) {
+            cerr << "get_method_pos: " << method_name << "不存在" << endl;
+            exit(-1);
+        }
+        return (*method_pos_map)[method_name];
     }
-    int get_var_pos(string var_name) { return var_pos_map[var_name]; }
-    int get_method_pos(string method_name) { return method_pos_map[method_name]; }
 };
 
 // 每个方法(函数)都有一个变量表
@@ -64,7 +82,7 @@ public:
             cerr << "get_var_temp: " << var_name << "不存在" << endl;
             exit(-1);
         }
-        return var_temp_map->at(var_name);
+        return (*var_temp_map)[var_name];
     }
     tree::Type get_var_type(string var_name)
     {
@@ -72,30 +90,32 @@ public:
             cerr << "get_var_type: " << var_name << "不存在" << endl;
             exit(-1);
         }
-        return var_type_map->at(var_name);
+        return (*var_type_map)[var_name];
     }
 };
 
 class ASTToTreeVisitor : public fdmj::AST_Visitor {
 public:
-    AST_Semant_Map* semant_map = nullptr; // FDMJ语义分析表
+    AST_Semant_Map* ast_info = nullptr; // FDMJ语义分析表
 
     tree::Program* tree_root = nullptr; // 根节点
     Temp_map temp_map;                  // 变量标签编号表
 
-    Class_table* class_table; // 类表
+    map<string, Class_table*>* class_table_map; // 全局类表
 
-    string class_name = "";            // 当前类名
-    string method_name = "";           // 当前方法名
+    string class_name = "";             // 当前类名
+    string method_name = "";            // 当前方法名
     Method_var_table* method_var_table; // 当前方法变量表
-    vector<tree::Tree*> newNodes;      // 下层结点集
-    Tr_Exp* newExp = nullptr;          // 下层表达式
+    vector<tree::Tree*> newNodes;       // 下层结点集
+    Tr_Exp* newExp = nullptr;           // 下层表达式
 
     Label *cur_L_while, *cur_L_end; // while语句标签 (用于continue和break语句)
 
-    ASTToTreeVisitor(AST_Semant_Map* semant_map)
-        : semant_map(semant_map)
+    ASTToTreeVisitor(AST_Semant_Map* ast_info)
+        : ast_info(ast_info)
     {
+        // 生成类表
+        class_table_map = gen_class_table_map(ast_info->name_maps);
     }
     ~ASTToTreeVisitor() { }
     tree::Program* getTree() { return tree_root; }

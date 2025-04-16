@@ -49,11 +49,10 @@ public:
 
 // 结点语义信息
 class AST_Semant_Map {
-private:
+public:
     Name_Maps* name_maps = nullptr;
     map<AST*, AST_Semant*> semant_map;
 
-public:
     AST_Semant_Map() { semant_map = map<AST*, AST_Semant*>(); }
     ~AST_Semant_Map() { semant_map.clear(); }
 

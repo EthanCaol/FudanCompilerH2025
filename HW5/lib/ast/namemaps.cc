@@ -69,6 +69,13 @@ bool Name_Maps::add_class_hiearchy(string class_name, string parent_name)
     return true;
 }
 
+string Name_Maps::get_parent(string class_name)
+{
+    if (classHierachy.find(class_name) == classHierachy.end())
+        return "";
+    return classHierachy[class_name];
+}
+
 vector<string>* Name_Maps::get_ancestors(string class_name)
 {
     vector<string>* ancestors = new vector<string>();
@@ -235,7 +242,8 @@ bool Name_Maps::add_method_formal_list(string class_name, string method_name, ve
         vector<string> existing_formals = methodFormalList[p];
         for (string formal_name : vl) {
             if (find(existing_formals.begin(), existing_formals.end(), formal_name) != existing_formals.end()) {
-                // cerr << "Error: Formal variable " << formal_name << " already exists in method " << method_name << " of class " << class_name << endl;
+                // cerr << "Error: Formal variable " << formal_name << " already exists in method " << method_name << "
+                // of class " << class_name << endl;
                 return false;
             }
         }
@@ -278,13 +286,15 @@ void Name_Maps::print()
     cout << "Class Variables: ";
     for (auto it = classVar.begin(); it != classVar.end(); it++) {
         VarDecl* vd = it->second;
-        cout << (it->first).first << "->" << (it->first).second << " with type=" << type_kind_string(vd->type->typeKind) << " ; ";
+        cout << (it->first).first << "->" << (it->first).second << " with type=" << type_kind_string(vd->type->typeKind)
+             << " ; ";
     }
     cout << endl;
     cout << "Method Variables: ";
     for (auto it = methodVar.begin(); it != methodVar.end(); it++) {
         VarDecl* vd = it->second;
-        cout << get<0>(it->first) << "->" << get<1>(it->first) << "->" << get<2>(it->first) << " with type=" << type_kind_string(vd->type->typeKind) << " ; ";
+        cout << get<0>(it->first) << "->" << get<1>(it->first) << "->" << get<2>(it->first)
+             << " with type=" << type_kind_string(vd->type->typeKind) << " ; ";
     }
     cout << endl;
     cout << "Method Formals: ";

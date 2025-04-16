@@ -305,7 +305,7 @@ void AST_Semant_Visitor::visit(fdmj::CallStm* node)
     AST_Semant* obj_semant = semant_map->getSemant(node->obj);
     if (!is_class(obj_semant)) {
         cerr << node->obj->getPos()->print() << endl;
-        cerr << "- 类方法调用对象不是类类型" << endl;
+        cerr << "- 类方法调用obj不是类类型" << endl;
         exit(1);
     }
 
@@ -741,11 +741,12 @@ void AST_Semant_Visitor::visit(fdmj::CallExp* node)
     // 检查Exp为class
     AST_Semant* obj_semant = semant_map->getSemant(node->obj);
     if (!is_class(obj_semant)) {
-        cerr << node->getPos()->print() << endl;
+        cerr << node->obj->getPos()->print() << endl;
         cerr << "- 类方法调用obj不是类" << endl;
         exit(1);
     }
 
+    // 处理类方法ID
     is_fetch_class_method = true;
     fetch_class_name = get<string>(obj_semant->get_type_par());
     node->name->accept(*this);

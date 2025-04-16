@@ -12,6 +12,10 @@
         "utility": "cpp",
         "new": "cpp",
         "iostream": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "string": "cpp",
+        "vector": "cpp",
+        "unordered_map": "cpp",
+        "string_view": "cpp"
     }
 }

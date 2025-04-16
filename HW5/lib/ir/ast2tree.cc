@@ -18,7 +18,73 @@ using namespace std;
 // using namespace fdmj;
 // using namespace tree;
 
-Class_table* generate_class_table(AST_Semant_Map* semant_map) { return nullptr; }
+static const int int_length = Compiler_Config::get("int_length");
+static const int address_length = Compiler_Config::get("address_length");
+
+// 为当前类生成类表
+Class_table* gen_class_table(Name_Maps* name_maps, map<string, Class_table*>* class_table_map, string class_name)
+{
+    // 如果已存在, 则直接返回
+    if (class_table_map->find(class_name) != class_table_map->end())
+        return (*class_table_map)[class_name];
+
+    auto offset = 0;
+    auto var_pos_map = new map<string, int>();
+    auto method_pos_map = new map<string, int>();
+
+    string par_class_name = name_maps->get_parent(class_name);
+    if (par_class_name != "") {
+        // 递归处理父类, 继承父类的成员变量和方法, 以及最末尾偏移量
+        auto par_class_table = gen_class_table(name_maps, class_table_map, par_class_name);
+        var_pos_map->merge(*par_class_table->var_pos_map);
+        method_pos_map->merge(*method_pos_map);
+        offset = par_class_table->offset;
+    }
+
+    auto class_var_list = name_maps->get_class_var_list(class_name);
+    for (auto var_name : *class_var_list) {
+        auto var_decl = name_maps->get_class_var(class_name, var_name);
+        int len = var_decl->type->typeKind == TypeKind::INT ? int_length : address_length;
+        (*var_pos_map)[var_name] = offset;
+        offset += len;
+    }
+
+    auto method_list = name_maps->get_method_list(class_name);
+    for (auto method_name : *method_list) {
+        string cur_method_name = class_name + "^" + method_name;
+        string par_method_name = par_class_name + "^" + method_name;
+
+        // 如果父类有相同方法, 则检查是否出现覆盖
+        // 返回值的指针不同, 则说明出现覆盖
+        if (method_pos_map->find(par_method_name) != method_pos_map->end()
+            && name_maps->get_method_return_formal(class_name, method_name)
+                != name_maps->get_method_return_formal(par_class_name, method_name)) {
+            (*method_pos_map)[cur_method_name] = (*method_pos_map)[par_method_name];
+            method_pos_map->erase(par_method_name);
+        }
+
+        // 如果父类没有相同方法, 则添加
+        else {
+            (*method_pos_map)[cur_method_name] = offset;
+            offset += address_length;
+        }
+    }
+
+    // 注册当前类表
+    Class_table* class_table = new Class_table(class_name, par_class_name, offset, var_pos_map, method_pos_map);
+    (*class_table_map)[class_name] = class_table;
+    return class_table;
+}
+
+// 生成所有类的类表
+map<string, Class_table*>* gen_class_table_map(Name_Maps* name_maps)
+{
+    auto class_table_map = new map<string, Class_table*>();
+    set<string>* class_list = name_maps->get_class_list();
+    for (auto class_name : *class_list)
+        gen_class_table(name_maps, class_table_map, class_name);
+    return class_table_map;
+}
 
 // 为当前函数生成方法变量表
 Method_var_table* generate_method_var_table(string class_name, string method_name, Name_Maps* nm, Temp_map* tm)
@@ -63,9 +129,6 @@ tree::Program* ast2tree(fdmj::Program* prog, AST_Semant_Map* semant_map)
 // PROG: MAINMETHOD CLASSDECLLIST
 void ASTToTreeVisitor::visit(fdmj::Program* node)
 {
-    // 生成类表
-    class_table = generate_class_table(semant_map);
-
     // 开始填充fdl
     vector<tree::FuncDecl*>* fdl = new vector<tree::FuncDecl*>();
 
@@ -76,12 +139,12 @@ void ASTToTreeVisitor::visit(fdmj::Program* node)
     newNodes.clear();
 
     // 类声明列表
-    for (auto cd : *(node->cdl)) {
-        cd->accept(*this); // 类声明
-        assert(newNodes.size() == 1);
-        fdl->push_back(static_cast<tree::FuncDecl*>(newNodes[0]));
-        newNodes.clear();
-    }
+    // for (auto cd : *(node->cdl)) {
+    //     cd->accept(*this); // 类声明
+    //     assert(newNodes.size() == 1);
+    //     fdl->push_back(static_cast<tree::FuncDecl*>(newNodes[0]));
+    //     newNodes.clear();
+    // }
 
     tree_root = new tree::Program(fdl);
 }
@@ -95,7 +158,7 @@ void ASTToTreeVisitor::visit(fdmj::MainMethod* node)
     method_name = MAIN_method_name;
 
     // 为当前函数生成方法变量表
-    method_var_table = generate_method_var_table(class_name, method_name, semant_map->getNameMaps(), &temp_map);
+    method_var_table = generate_method_var_table(class_name, method_name, ast_info->getNameMaps(), &temp_map);
 
     // 形参列表
     vector<tree::Temp*>* args = new vector<tree::Temp*>();
@@ -142,6 +205,41 @@ void ASTToTreeVisitor::visit(fdmj::ClassDecl* node) { }
 // TYPE: INT | INT '[' ']' | CLASS ID
 void ASTToTreeVisitor::visit(fdmj::Type* node) { }
 
+vector<tree::Stm*>* array_decl_helper(fdmj::VarDecl* node, tree::TempExp* array_temp)
+{
+    auto type = node->type;
+    auto init = node->init;
+
+    auto sl = new vector<tree::Stm*>();
+
+    int size; // 计算数组大小
+    if (type->arity != nullptr)
+        size = type->arity->val;
+    else if (holds_alternative<vector<IntExp*>*>(init))
+        size = get<vector<IntExp*>*>(init)->size();
+
+    // temp=malloc((size+1) * int_length)
+    auto array_malloc_args = new vector<tree::Exp*> { new tree::Const((size + 1) * int_length) };
+    auto array_malloc = new tree::ExtCall(tree::Type::PTR, "malloc", array_malloc_args);
+    sl->push_back(new tree::Move(array_temp, array_malloc));
+
+    // temp.size=size
+    auto size_mem = new tree::Mem(tree::Type::INT, array_temp);
+    sl->push_back(new tree::Move(size_mem, new tree::Const(size)));
+
+    if (holds_alternative<vector<IntExp*>*>(init)) {
+        auto init_list = *get<vector<IntExp*>*>(init);
+        for (int i = 0; i < init_list.size(); i++) {
+            auto valExp = init_list[i];
+            auto offset = new tree::Const((i + 1) * int_length);
+            auto index_mem = new tree::Mem(tree::Type::INT, new tree::Binop(tree::Type::PTR, "+", array_temp, offset));
+            sl->push_back(new tree::Move(index_mem, new tree::Const(valExp->val)));
+        }
+    }
+
+    return sl;
+}
+
 // 变量声明
 // VARDECL: CLASS ID ID ';'
 //        | INT ID ';'
@@ -162,47 +260,71 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
     if (type->typeKind == TypeKind::INT) {
         if (holds_alternative<fdmj::IntExp*>(init)) {
             int val = get<fdmj::IntExp*>(init)->val;
-            tree::TempExp* tempExp = new tree::TempExp(tree::Type::INT, temp);
-            tree::Const* sizeConst = new tree::Const(val);
-            newNodes.push_back(new tree::Move(tempExp, sizeConst));
+            tree::TempExp* int_temp = new tree::TempExp(tree::Type::INT, temp);
+            newNodes.push_back(new tree::Move(int_temp, new tree::Const(val)));
         }
     }
 
     // 整型数组
     else if (type->typeKind == TypeKind::ARRAY) {
-        int size; // 计算数组大小
-        int int_length = Compiler_Config::get("int_length");
-        if (type->arity != nullptr)
-            size = type->arity->val;
-        else if (holds_alternative<vector<IntExp*>*>(init))
-            size = get<vector<IntExp*>*>(init)->size();
-
-        // malloc((size+1) * int_length)
-        auto args = new vector<tree::Exp*>();
-        args->push_back(new tree::Const((size + 1) * int_length));
-        auto ext_call = new tree::ExtCall(tree::Type::PTR, "malloc", args);
-
-        // temp=malloc((size+1) * int_length)
-        tree::TempExp* tempExp = new tree::TempExp(tree::Type::PTR, temp);
-        newNodes.push_back(new tree::Move(tempExp, ext_call));
-
-        // temp.size=size
-        auto size_mem = new tree::Mem(tree::Type::INT, tempExp);
-        newNodes.push_back(new tree::Move(size_mem, new tree::Const(size)));
-
-        if (holds_alternative<vector<IntExp*>*>(init)) {
-            auto init_list = *get<vector<IntExp*>*>(init);
-            for (int i = 0; i < init_list.size(); i++) {
-                auto valExp = init_list[i];
-                auto offset = new tree::Const((i + 1) * int_length);
-                auto index_mem = new tree::Mem(tree::Type::INT, new tree::Binop(tree::Type::PTR, "+", tempExp, offset));
-                newNodes.push_back(new tree::Move(index_mem, new tree::Const(valExp->val)));
-            }
-        }
+        auto array_temp = new tree::TempExp(tree::Type::PTR, temp);
+        auto sl = array_decl_helper(node, array_temp);
+        newNodes.insert(newNodes.end(), sl->begin(), sl->end());
     }
 
     // 类
     else if (node->type->typeKind == TypeKind::CLASS) {
+        string class_name = node->type->cid->id;
+        Class_table* class_table = (*class_table_map)[class_name];
+        auto var_pos_map = class_table->var_pos_map;
+        auto method_pos_map = class_table->method_pos_map;
+
+        // 为类实例分配空间
+        auto class_temp = new tree::TempExp(tree::Type::PTR, temp);
+        auto class_malloc_args = new vector<tree::Exp*> { new tree::Const(class_table->offset) };
+        auto class_malloc = new tree::ExtCall(tree::Type::PTR, "malloc", class_malloc_args);
+        newNodes.push_back(new tree::Move(class_temp, class_malloc));
+
+        // 初始化类成员变量
+        auto name_maps = ast_info->name_maps;
+        for (auto var_pair : *var_pos_map) {
+            auto var_name = var_pair.first;
+            auto var_offset = var_pair.second;
+            auto var_decl = name_maps->get_class_var(class_name, var_name);
+
+            // 成员变量是整型
+            if (var_decl->type->typeKind == TypeKind::INT) {
+                if (holds_alternative<fdmj::IntExp*>(var_decl->init)) {
+                    auto var_mem = new tree::Mem(tree::Type::PTR,
+                        new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(var_offset)));
+                    int var_val = get<fdmj::IntExp*>(var_decl->init)->val;
+                    newNodes.push_back(new tree::Move(var_mem, new tree::Const(var_val)));
+                }
+            }
+
+            // 成员变量是整型数组
+            else if (var_decl->type->typeKind == TypeKind::ARRAY) {
+                // 首先构造暂存数组
+                auto array_temp = new tree::TempExp(tree::Type::PTR, temp_map.newtemp());
+                auto array_sl = array_decl_helper(var_decl, array_temp);
+                auto array_init = new tree::Eseq(tree::Type::PTR, new tree::Seq(array_sl), array_temp);
+                // 然后把数组地址存入成员变量
+                auto var_mem = new tree::Mem(
+                    tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(var_offset)));
+                newNodes.push_back(new tree::Move(var_mem, array_init));
+            }
+        }
+
+        // 初始化类成员方法
+        for (auto method_pair : *method_pos_map) {
+            auto method_name = method_pair.first;
+            auto method_offset = method_pair.second;
+
+            auto method_mem = new tree::Mem(
+                tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(method_offset)));
+            auto method_nameExp = new Name(temp_map.newstringlabel(method_name));
+            newNodes.push_back(new tree::Move(method_mem, method_nameExp));
+        }
     }
 }
 
@@ -383,7 +505,28 @@ void ASTToTreeVisitor::visit(fdmj::Assign* node)
 
 // 语句->类方法调用: 类对象.方法名(形参列表);
 // STM: EXP '.' ID '(' EXPLIST ')' ';'
-void ASTToTreeVisitor::visit(fdmj::CallStm* node) { }
+void ASTToTreeVisitor::visit(fdmj::CallStm* node)
+{
+    node->obj->accept(*this);
+    tree::Exp* objExp = newExp->unEx(&temp_map)->exp;
+    auto class_name = get<string>(ast_info->getSemant(node->obj)->get_type_par());
+
+    auto method_name = node->name->id;
+
+    vector<tree::Exp*>* args = new vector<tree::Exp*> { objExp };
+    for (auto& arg : *(node->par)) {
+        arg->accept(*this);
+        auto arg_exp = newExp->unEx(&temp_map)->exp;
+        args->push_back(arg_exp);
+    }
+
+    auto class_table = (*class_table_map)[class_name];
+    int method_offset = class_table->get_method_pos(method_name);
+    auto method_mem
+        = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", objExp, new tree::Const(method_offset)));
+
+    auto method_call = new tree::Call(tree::Type::INT, method_name, method_mem, args);
+}
 
 // 语句->continue语句: continue;
 // STM: CONTINUE ';'
@@ -573,7 +716,6 @@ void ASTToTreeVisitor::visit(fdmj::ArrayExp* node)
     auto i_plus_one = new tree::Binop(tree::Type::INT, "+", i_exp, new tree::Const(1));
 
     // (i+1)*int_length
-    int int_length = Compiler_Config::get("int_length");
     auto i_offset = new tree::Binop(tree::Type::INT, "*", i_plus_one, new tree::Const(int_length));
 
     // *(arr+(i+1)*4)
