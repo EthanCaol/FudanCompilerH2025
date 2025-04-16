@@ -30,16 +30,18 @@ public:
     string class_name = "";     // 类名
     string par_class_name = ""; // 父类名
 
-    int offset = 0;                   // 偏移量
-    map<string, int>* var_pos_map;    // 变量位置映射
-    map<string, int>* method_pos_map; // 方法位置映射
+    int offset = 0;                        // 偏移量
+    map<string, int>* var_pos_map;         // 变量位置映射
+    map<string, string>* method_class_map; // 方法真实所处类
+    map<string, int>* method_pos_map;      // 方法位置映射
 
     Class_table(string class_name, string par_class_name, int offset, map<string, int>* var_pos_map,
-        map<string, int>* method_pos_map)
+        map<string, string>* method_class_map, map<string, int>* method_pos_map)
         : class_name(class_name)
         , par_class_name(par_class_name)
         , offset(offset)
         , var_pos_map(var_pos_map)
+        , method_class_map(method_class_map)
         , method_pos_map(method_pos_map) { };
     ~Class_table() { };
 
