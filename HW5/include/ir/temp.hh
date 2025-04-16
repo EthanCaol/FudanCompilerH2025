@@ -59,6 +59,16 @@ public:
         s_labels.clear();
     }
 
+    // 清空映射表
+    void clear()
+    {
+        t_map.clear();
+        l_map.clear();
+        s_labels.clear();
+        next_temp = 100;
+        next_label = 100;
+    }
+
     // 创建新的临时变量
     Temp* newtemp()
     {

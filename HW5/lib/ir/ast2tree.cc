@@ -138,12 +138,12 @@ void ASTToTreeVisitor::visit(fdmj::Program* node)
     newNodes.clear();
 
     // 类声明列表
-    // for (auto cd : *(node->cdl)) {
-    //     cd->accept(*this); // 类声明
-    //     assert(newNodes.size() == 1);
-    //     fdl->push_back(static_cast<tree::FuncDecl*>(newNodes[0]));
-    //     newNodes.clear();
-    // }
+    for (auto cd : *(node->cdl)) {
+        cd->accept(*this); // 类声明
+        assert(newNodes.size() == 1);
+        fdl->push_back(static_cast<tree::FuncDecl*>(newNodes[0]));
+        newNodes.clear();
+    }
 
     tree_root = new tree::Program(fdl);
 }
@@ -198,7 +198,75 @@ void ASTToTreeVisitor::visit(fdmj::MainMethod* node)
 // 类声明: 类名 [基类名] { 变量声明列表 方法声明列表 }
 // CLASSDECL: PUBLIC CLASS ID '{' VARDECLLIST METHODDECLLIST '}'
 //          | PUBLIC CLASS ID EXTENDS ID '{' VARDECLLIST METHODDECLLIST '}'
-void ASTToTreeVisitor::visit(fdmj::ClassDecl* node) { }
+void ASTToTreeVisitor::visit(fdmj::ClassDecl* node)
+{
+    // 更新当前类名
+    class_name = node->id->id;
+
+    // 依次初始化类方法
+    auto fdl = new vector<tree::Tree*>();
+    for (auto md : *(node->mdl)) {
+        md->accept(*this);
+        assert(newNodes.size() == 1);
+        fdl->push_back(newNodes[0]);
+        newNodes.clear();
+    }
+
+    newNodes.insert(newNodes.end(), fdl->begin(), fdl->end());
+}
+
+// 方法声明: 返回类型 方法名(形参列表) { 变量声明列表 语句列表 }
+// METHODDECL: PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
+void ASTToTreeVisitor::visit(fdmj::MethodDecl* node)
+{
+    // 更新当前方法名
+    method_name = node->id->id;
+
+    // 清空变量标签方法名编码表
+    temp_map.clear();
+
+    // 为当前函数生成方法变量表
+    method_var_table = generate_method_var_table(class_name, method_name, ast_info->getNameMaps(), &temp_map);
+
+    // 语句列表
+    vector<tree::Stm*>* sl = new vector<tree::Stm*>();
+
+    // 形参列表
+    this_temp = new tree::TempExp(tree::Type::PTR, temp_map.newtemp());
+    vector<tree::Temp*>* args = new vector<tree::Temp*> { this_temp->temp };
+
+    // 变量声明列表
+    for (fdmj::VarDecl* vd : *node->vdl) {
+        vd->accept(*this);
+        for (auto& newNode : newNodes)
+            if (newNode)
+                sl->push_back(static_cast<tree::Stm*>(newNode));
+        newNodes.clear();
+    }
+
+    // 语句列表
+    for (fdmj::Stm* stm : *node->sl) {
+        stm->accept(*this);
+        for (auto& newNode : newNodes)
+            if (newNode)
+                sl->push_back(static_cast<tree::Stm*>(newNode));
+        newNodes.clear();
+    }
+
+    // 在开头插入返回标签
+    Label* entry_label = temp_map.newlabel();
+    sl->insert(sl->begin(), new tree::LabelStm(entry_label));
+
+    // 构造Blocks
+    tree::Block* bk = new tree::Block(entry_label, nullptr, sl);
+    vector<tree::Block*>* bkl = new vector<tree::Block*>();
+    bkl->push_back(bk);
+
+    int lt = temp_map.next_temp - 1;
+    int ll = temp_map.next_label - 1;
+    auto return_type = node->type->typeKind == TypeKind::INT ? tree::Type::INT : tree::Type::PTR;
+    newNodes.push_back(new tree::FuncDecl(class_name + "^" + method_name, args, bkl, return_type, lt, ll));
+}
 
 // 类型:  整型 | 整型数组 | 类
 // TYPE: INT | INT '[' ']' | CLASS ID
@@ -328,10 +396,6 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
         }
     }
 }
-
-// 方法声明: 返回类型 方法名(形参列表) { 变量声明列表 语句列表 }
-// METHODDECL: PUBLIC TYPE ID '(' FORMALLIST ')' '{' VARDECLLIST STMLIST '}'
-void ASTToTreeVisitor::visit(fdmj::MethodDecl* node) { }
 
 // 形参: 类型 变量名
 // FORMAL: TYPE ID
@@ -504,18 +568,16 @@ void ASTToTreeVisitor::visit(fdmj::Assign* node)
     newNodes.push_back(new tree::Move(left, exp));
 }
 
-// 语句->类方法调用: 类对象.方法名(形参列表);
-// STM: EXP '.' ID '(' EXPLIST ')' ';'
-void ASTToTreeVisitor::visit(fdmj::CallStm* node)
+tree::Call* ASTToTreeVisitor::call_helper(fdmj::Exp* obj, fdmj::IdExp* name, vector<fdmj::Exp*>* par)
 {
-    auto class_name = get<string>(ast_info->getSemant(node->obj)->get_type_par());
-    auto method_name = node->name->id;
+    auto class_name = get<string>(ast_info->getSemant(obj)->get_type_par());
+    auto method_name = name->id;
 
-    node->obj->accept(*this);
+    obj->accept(*this);
     tree::Exp* objExp = newExp->unEx(&temp_map)->exp;
 
     vector<tree::Exp*>* args = new vector<tree::Exp*> { objExp };
-    for (auto& arg : *(node->par)) {
+    for (auto& arg : *(par)) {
         arg->accept(*this);
         auto arg_exp = newExp->unEx(&temp_map)->exp;
         args->push_back(arg_exp);
@@ -528,6 +590,14 @@ void ASTToTreeVisitor::visit(fdmj::CallStm* node)
     auto return_f = ast_info->getNameMaps()->get_method_return_formal(class_name, method_name);
     auto return_type = return_f->type->typeKind == TypeKind::INT ? tree::Type::INT : tree::Type::PTR;
     auto method_call = new tree::Call(return_type, method_name, method_mem, args);
+    return method_call;
+}
+
+// 语句->类方法调用: 类对象.方法名(形参列表);
+// STM: EXP '.' ID '(' EXPLIST ')' ';'
+void ASTToTreeVisitor::visit(fdmj::CallStm* node)
+{
+    auto method_call = call_helper(node->obj, node->name, node->par);
     newNodes.push_back(new tree::ExpStm(method_call));
 }
 
@@ -1027,7 +1097,11 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
 
 // 表达式->this指针: this
 // EXP: THIS
-void ASTToTreeVisitor::visit(fdmj::This* node) { }
+void ASTToTreeVisitor::visit(fdmj::This* node)
+{
+
+    // TODO
+}
 
 // 表达式->类变量访问: 类对象.变量名
 // EXP: EXP '.' ID
@@ -1037,26 +1111,7 @@ void ASTToTreeVisitor::visit(fdmj::ClassVar* node) { }
 // EXP: EXP '.' ID '(' EXPLIST ')'
 void ASTToTreeVisitor::visit(fdmj::CallExp* node)
 {
-    auto class_name = get<string>(ast_info->getSemant(node->obj)->get_type_par());
-    auto method_name = node->name->id;
-
-    node->obj->accept(*this);
-    tree::Exp* objExp = newExp->unEx(&temp_map)->exp;
-
-    vector<tree::Exp*>* args = new vector<tree::Exp*> { objExp };
-    for (auto& arg : *(node->par)) {
-        arg->accept(*this);
-        auto arg_exp = newExp->unEx(&temp_map)->exp;
-        args->push_back(arg_exp);
-    }
-
-    auto class_table = (*class_table_map)[class_name];
-    int method_offset = class_table->get_method_pos(method_name);
-    auto method_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", objExp, new tree::Const(method_offset)));
-
-    auto return_f = ast_info->getNameMaps()->get_method_return_formal(class_name, method_name);
-    auto return_type = return_f->type->typeKind == TypeKind::INT ? tree::Type::INT : tree::Type::PTR;
-    auto method_call = new tree::Call(return_type, method_name, method_mem, args);
+    auto method_call = call_helper(node->obj, node->name, node->par);
     newExp = new Tr_ex(method_call);
 }
 

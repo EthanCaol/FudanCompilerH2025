@@ -35,8 +35,8 @@ public:
     map<string, string>* method_class_map; // 方法真实所处类
     map<string, int>* method_pos_map;      // 方法位置映射
 
-    Class_table(string class_name, string par_class_name, int offset, map<string, int>* var_pos_map,
-        map<string, string>* method_class_map, map<string, int>* method_pos_map)
+    Class_table(string class_name, string par_class_name, int offset, map<string, int>* var_pos_map, map<string, string>* method_class_map,
+        map<string, int>* method_pos_map)
         : class_name(class_name)
         , par_class_name(par_class_name)
         , offset(offset)
@@ -113,6 +113,9 @@ public:
 
     Label *cur_L_while, *cur_L_end; // while语句标签 (用于continue和break语句)
 
+    tree::TempExp* this_temp = nullptr; // this指针
+
+
     ASTToTreeVisitor(AST_Semant_Map* ast_info)
         : ast_info(ast_info)
     {
@@ -121,6 +124,9 @@ public:
     }
     ~ASTToTreeVisitor() { }
     tree::Program* getTree() { return tree_root; }
+
+    // CallStm和CallExp的辅助函数
+    tree::Call* call_helper(fdmj::Exp* obj, fdmj::IdExp* name, vector<fdmj::Exp*>* par);
 
     void visit(fdmj::Program* node) override;
     void visit(fdmj::MainMethod* node) override;
