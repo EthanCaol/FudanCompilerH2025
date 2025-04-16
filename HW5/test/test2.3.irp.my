@@ -110,25 +110,25 @@
                         <ESeq>
                             <Sequence>
                                 <Move>
-                                    <Temp type="INT" temp="104"/>
+                                    <Temp type="INT" temp="105"/>
                                     <ESeq>
                                         <Sequence>
                                             <Move>
-                                                <Temp type="INT" temp="106"/>
+                                                <Temp type="INT" temp="104"/>
                                                 <Const value="0"/>
                                             </Move>
-                                            <CJump relop="&lt;" true="114" false="115">
+                                            <CJump relop="&lt;" true="110" false="111">
                                                 <Const value="1"/>
                                                 <Const value="2"/>
                                             </CJump>
-                                            <Label label="114"/>
+                                            <Label label="110"/>
                                             <Move>
-                                                <Temp type="INT" temp="106"/>
+                                                <Temp type="INT" temp="104"/>
                                                 <Const value="1"/>
                                             </Move>
-                                            <Label label="115"/>
+                                            <Label label="111"/>
                                         </Sequence>
-                                        <Temp type="INT" temp="106"/>
+                                        <Temp type="INT" temp="104"/>
                                     </ESeq>
                                 </Move>
                             </Sequence>
@@ -140,16 +140,16 @@
                                             <ESeq>
                                                 <Sequence>
                                                     <Move>
-                                                        <Temp type="INT" temp="105"/>
+                                                        <Temp type="INT" temp="106"/>
                                                         <Memory type="INT">
                                                             <Temp type="PTR" temp="100"/>
                                                         </Memory>
                                                     </Move>
-                                                    <CJump relop="&gt;=" true="112" false="113">
-                                                        <Temp type="INT" temp="104"/>
+                                                    <CJump relop="&gt;=" true="114" false="115">
                                                         <Temp type="INT" temp="105"/>
+                                                        <Temp type="INT" temp="106"/>
                                                     </CJump>
-                                                    <Label label="112"/>
+                                                    <Label label="114"/>
                                                     <ExpressionStatement>
                                                         <ExtCall extfun="exit" type="INT">
                                                             <Arguments>
@@ -157,9 +157,9 @@
                                                             </Arguments>
                                                         </ExtCall>
                                                     </ExpressionStatement>
-                                                    <Label label="113"/>
+                                                    <Label label="115"/>
                                                 </Sequence>
-                                                <Temp type="INT" temp="104"/>
+                                                <Temp type="INT" temp="105"/>
                                             </ESeq>
                                             <Const value="1"/>
                                         </BinOp>

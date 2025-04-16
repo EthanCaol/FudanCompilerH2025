@@ -37,8 +37,8 @@ int main(int argc, const char* argv[])
 
     string file;
     string dir = "";
-    file = dir + "test9";
-    // file = dir + argv[argc - 1];
+    // file = dir + "test0";
+    file = dir + argv[argc - 1];
 
     string file_fmj = file + ".fmj";
     string file_ast = file + ".2.ast.my";
@@ -53,9 +53,9 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    cout << "将AST进行语义分析并保存: " << file_ast_semant << endl;
+    // cout << "将AST进行语义分析并保存: " << file_ast_semant << endl;
     AST_Semant_Map* semant_map = semant_analyze(root);
-    semant_map->getNameMaps()->print();
+    // semant_map->getNameMaps()->print();
     x = ast2xml(root, semant_map, with_location_info, true); // no semant info yet
     if (x->Error()) {
         cout << "AST无效" << endl;
@@ -63,7 +63,7 @@ int main(int argc, const char* argv[])
     }
     x->SaveFile(file_ast_semant.c_str());
 
-    cout << "将AST转换为IR并保存: " << file_irp << endl;
+    // cout << "将AST转换为IR并保存: " << file_irp << endl;
     tree::Program* ir = ast2tree(root, semant_map);
     x = tree2xml(ir);
     x->SaveFile(file_irp.c_str());

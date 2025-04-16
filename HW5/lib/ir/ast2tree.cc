@@ -330,10 +330,15 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
             // 成员变量是整型
             if (var_decl->type->typeKind == TypeKind::INT) {
                 if (holds_alternative<fdmj::IntExp*>(var_decl->init)) {
+                    int val = get<fdmj::IntExp*>(var_decl->init)->val;
+
                     auto var_mem
                         = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(offset)));
-                    int var_val = get<fdmj::IntExp*>(var_decl->init)->val;
-                    newNodes.push_back(new tree::Move(var_mem, new tree::Const(var_val)));
+
+                    auto val_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
+                    auto val_move = new tree::Move(val_temp, new tree::Const(val));
+                    auto val_eseq = new tree::Eseq(tree::Type::INT, new tree::Seq(new vector<tree::Stm*> { val_move }), val_temp);
+                    newNodes.push_back(new tree::Move(var_mem, val_eseq));
                 }
             }
 

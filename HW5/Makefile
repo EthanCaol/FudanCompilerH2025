@@ -36,7 +36,7 @@ patchdemo: $(PATCHDEMO)
 run: $(MAIN)
 	cd $(CURDIR)/test && \
 	for file in $$(ls .); do \
-        if [ "$${file##*.}" = "ast" ]; then \
+        if [ "$${file##*.}" = "fmj" ]; then \
             echo "Reading $${file%%.*}"; \
 			$(MAIN) "$${file%%.*}"; \
         fi \
