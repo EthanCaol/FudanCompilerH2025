@@ -1161,7 +1161,8 @@ void ASTToTreeVisitor::visit(fdmj::GetArray* node)
 void ASTToTreeVisitor::visit(fdmj::Length* node)
 {
     node->exp->accept(*this);
-    auto args = new vector<tree::Exp*> { newExp->unEx(&temp_map)->exp };
-    auto ext_call = new tree::ExtCall(tree::Type::INT, "length", args);
-    newExp = new Tr_ex(ext_call);
+    auto arr_temp = newExp->unEx(&temp_map)->exp;
+    tree::TempExp* size_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
+    tree::Move* size_move = new tree::Move(size_temp, new tree::Mem(tree::Type::INT, arr_temp));
+    newExp = new Tr_ex(new tree::Eseq(tree::Type::INT, size_move, size_temp));
 }

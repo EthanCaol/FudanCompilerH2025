@@ -1,6 +1,4 @@
-
-
-# HW4-实验报告
+# HW5-实验报告
 
 ## Q1.1: treep.hh中有许多tigerirp的 class，他们分别起到了什么作用？
 
@@ -77,19 +75,19 @@
 ## Q1.2: 相对于虎书中的Tiger IR，我们的Tiger IR+多了哪些内容，为什么需要多的这些内容？
 
 - tree::Block（基本块）​​
-    ​作用​：表示一组顺序执行的语句，包含入口标签、语句列表。
+    ​作用​:表示一组顺序执行的语句，包含入口标签、语句列表。
     便于构建控制流图（CFG），支持后续的优化和分析。
 
 - tree::Return（显式返回语句）​​
-    ​作用​：将返回值作为显式语句​（而非原始 Tiger IR 中隐含的表达式）。
+    ​作用​:将返回值作为显式语句​（而非原始 Tiger IR 中隐含的表达式）。
     更清晰地表示函数返回逻辑，便于优化和调试。
 
 - tree::ExtCall（外部函数调用）​​
-    ​作用​：显式区分外部函数调用​（如系统库函数 print）和普通函数调用。
+    ​作用​:显式区分外部函数调用​（如系统库函数 print）和普通函数调用。
     外部函数可能具有特殊调用约定（如寄存器传参、副作用处理），需要单独处理。
 
 - tree::Phi（Phi 函数）​​
-    ​作用​：支持 ​SSA（静态单赋值）形式，用于合并不同控制流路径的变量值。
+    ​作用​:支持 ​SSA（静态单赋值）形式，用于合并不同控制流路径的变量值。
     原始 Tiger IR 没有显式的 SSA 支持，而现代编译器优化（如常量传播、死代码消除）依赖 SSA。
     例如，循环优化中需要处理 x = φ(x₁, x₂) 来合并不同分支的变量值。
 
@@ -246,4 +244,124 @@ void ASTToTreeVisitor::visit(fdmj::While* node) {
 
     newNode = new tree::Seq(sl);
 }
+```
+
+### 7. 数组初始化 (VarDecl->ARRAY)
+
+数组初始化通过 `tree::ExtCall` 调用 `malloc` 函数分配内存，并设置数组的大小和初始值。  
+- 首先计算数组的大小（如果维数为空, 则需要考虑初始化长度）。
+- 调用 `malloc` 分配内存，并将数组的大小存储在数组的第一个位置。
+- 如果数组有初始值列表，则依次将初始值存储到数组中。
+
+
+### 8. 数组存取 (ArrayExp)
+
+数组存取通过计算数组的偏移量并访问对应的内存地址实现。  
+- 首先检查数组下标是否越界（`index >= size`），如果越界则调用 `exit(-1)` 终止程序。
+- 计算数组元素的地址:`*(arr + (index + 1) * int_length)`。
+- 返回对应的内存值。
+
+
+### 9. 数组长度 (Length)
+
+获取数组长度通过访问数组的第一个位置实现。  
+- 数组的长度存储在数组的第一个位置（`arr[0]`）。
+- 直接返回该位置的值。
+
+---
+
+## Q3.1: 你是如何重命名method的？
+
+采用了 **类名+方法名** 对方法进行重命名
+例如，类 `A` 中的方法 `foo` 会被重命名为 `A^foo`
+
+具体实现如下:
+- 在 `MethodDecl` 节点的翻译中，使用 `class_name + "^" + method_name` 作为方法的唯一标识符。
+- 在类方法调用时，通过类名和方法名查找方法的偏移量，并生成对应的调用代码。
+
+---
+
+## Q3.2: main method和class method的参数列表有何不同（hint:this）
+
+`main` 方法和类方法的参数列表主要区别在于类方法会隐式包含一个 `this` 指针，而 `main` 方法没有。
+
+---
+
+## Q3.3: 你是如何处理class method中的this的？
+
+1. 在进入类方法时，生成一个 `this_temp` 指针的临时变量:
+   ```cpp
+   this_temp = new tree::TempExp(tree::Type::PTR, temp_map.newtemp());
+   ```
+2. 在访问类成员变量或方法时，通过 `this_temp` 指针计算偏移量，生成对应的访存代码:
+   ```cpp
+   auto var_mem = new tree::Mem(var_type, new tree::Binop(tree::Type::PTR, "+", this_temp, new tree::Const(offset)));
+   ```
+---
+
+## Q3.4: 你是如何记录不同class的变量和方法的（hint:Unified Object Record）
+
+使用了一个全局统一的对象记录来存储类的变量和方法信息
+- 在生成类表时，计算每个成员变量和方法的偏移量，并存储在 `Class_table` 中:
+- 在访问类成员变量或方法时，通过类表查找偏移量，并生成对应的内存访问代码。
+
+---
+
+## Q3.5: 你是如何处理多态的？
+
+在处理多态时，需要根据实际调用的对象类型来确定方法的真实类名
+- 首先获取当前对象的类名 `class_name` 和方法名 `method_name`。
+- 然后通过 `name_maps` 不断向上查找父类，
+    直到找到第一个与当前类的返回形参结点地址不同的类 (即实现方法不同)
+- 最后一个相同的类就是方法的真实类名 `method_real_class`。
+
+```cpp
+// 找到第一个return_formal不同的
+auto cur_class_name = class_name;
+auto par_class_name = name_maps->get_parent(class_name);
+while (par_class_name != "") {
+    auto cur_f_return = name_maps->get_method_return_formal(cur_class_name, method_name);
+    auto par_f_return = name_maps->get_method_return_formal(par_class_name, method_name);
+    if (par_f_return != cur_f_return)
+        break;
+
+    method_real_class = par_class_name;
+    cur_class_name = par_class_name;
+    par_class_name = name_maps->get_parent(cur_class_name);
+}
+```
+
+---
+
+## Q3.6: 你是如何翻译有关class的操作的？
+
+### 1. 类的初始化
+在类的初始化过程中，我们为类的每个实例分配内存，并初始化其成员变量和方法表:
+- 为类实例分配内存:
+  ```cpp
+  auto class_malloc = new tree::ExtCall(tree::Type::PTR, "malloc", class_malloc_args);
+  ```
+- 初始化成员变量(带初始化):
+  ```cpp
+  auto var_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(offset)));
+  newNodes.push_back(new tree::Move(var_mem, array_init));
+  ```
+- 初始化方法表:
+  ```cpp
+  auto method_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(offset)));
+  auto method_nameExp = new Name(temp_map.newstringlabel(method_real_class + "^" + method_name));
+  newNodes.push_back(new tree::Move(method_mem, method_nameExp));
+  ```
+
+### 2. 访问类变量
+通过 `this` 指针和变量的偏移量计算变量的地址，并生成访存代码:
+```cpp
+auto var_mem = new tree::Mem(var_type, new tree::Binop(tree::Type::PTR, "+", this_temp, new tree::Const(offset)));
+```
+
+### 3. 访问类方法
+通过 `this` 指针和方法的偏移量查找方法的入口地址，并生成调用代码:
+```cpp
+auto method_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", objExp, new tree::Const(offset)));
+auto method_call = new tree::Call(return_type, method_name, method_mem, args);
 ```
