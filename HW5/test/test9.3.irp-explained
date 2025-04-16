@@ -90,7 +90,9 @@
                 <Sequence>
                     <Label label="100"/>
                     <Return>
+
                         <BinOp op="+" type="INT">
+
                             <Memory type="INT">
                                 <BinOp op="+" type="PTR">
                                     <Call id="m1" type="PTR">
@@ -108,6 +110,7 @@
                                     <Const value="0"/>
                                 </BinOp>
                             </Memory>
+                            
                             <Memory type="INT">
                                 <BinOp op="+" type="PTR">
                                     <Temp type="PTR" temp="100"/> class c2 x;

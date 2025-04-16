@@ -19,7 +19,7 @@ class Patch_list;
 class ASTToTreeVisitor;
 
 tree::Program* ast2tree(fdmj::Program* prog, AST_Semant_Map* semant_map);
-map<string, Class_table*>* gen_class_table_map(Name_Maps* name_maps);
+Class_table* gen_class_table_map(Name_Maps* name_maps);
 Method_var_table* generate_method_var_table(string class_name, string method_name, Name_Maps* nm, Temp_map* tm);
 
 // 类表将每个类变量和方法映射到一个地址偏移量
@@ -27,38 +27,18 @@ Method_var_table* generate_method_var_table(string class_name, string method_nam
 // 即所有类使用相同的类表, 所有类的所有可能变量和方法都列在同一记录布局中
 class Class_table {
 public:
-    string class_name = "";     // 类名
-    string par_class_name = ""; // 父类名
+    map<string, int>* var_pos_map;    // 变量位置映射
+    map<string, int>* method_pos_map; // 方法位置映射
 
-    int offset = 0;                        // 偏移量
-    map<string, int>* var_pos_map;         // 变量位置映射
-    map<string, string>* method_class_map; // 方法真实所处类
-    map<string, int>* method_pos_map;      // 方法位置映射
-
-    Class_table(string class_name, string par_class_name, int offset, map<string, int>* var_pos_map, map<string, string>* method_class_map,
-        map<string, int>* method_pos_map)
-        : class_name(class_name)
-        , par_class_name(par_class_name)
-        , offset(offset)
-        , var_pos_map(var_pos_map)
-        , method_class_map(method_class_map)
-        , method_pos_map(method_pos_map) {
-            cerr << "Class_table: " << class_name << endl;
-            cerr << "  parent: " << par_class_name << endl;
-            cerr << "  offset: " << offset << endl;
-            for (auto var : *var_pos_map) {
-                cerr << "  " << var.first << " : " << var.second << endl;
-            }
-            for (auto method : *method_pos_map) {
-                cerr << "  " << method.first << " : " << method.second << endl;
-            }
-         };
+    Class_table(map<string, int>* var_pos_map, map<string, int>* method_pos_map)
+        : var_pos_map(var_pos_map)
+        , method_pos_map(method_pos_map) { };
     ~Class_table() { };
 
     int get_var_pos(string var_name)
     {
         if (var_pos_map->find(var_name) == var_pos_map->end()) {
-            cerr << "get_var_pos: " << class_name << "->" << var_name << "成员变量不存在" << endl;
+            cerr << "get_var_pos: " << var_name << "成员变量不存在" << endl;
             exit(-1);
         }
         return (*var_pos_map)[var_name];
@@ -66,11 +46,7 @@ public:
     int get_method_pos(string method_name)
     {
         if (method_pos_map->find(method_name) == method_pos_map->end()) {
-            cerr << "get_method_pos: " << class_name << "->" << method_name << "成员方法不存在" << endl;
-            cerr << "Class_table: " << class_name << endl;
-            for (auto method : *method_pos_map) {
-                cerr << "  " << method.first << endl;
-            }
+            cerr << "get_method_pos: " << method_name << "成员方法不存在" << endl;
             exit(-1);
         }
         return (*method_pos_map)[method_name];
@@ -117,7 +93,7 @@ public:
     tree::Program* tree_root = nullptr; // 根节点
     Temp_map temp_map;                  // 变量标签编号表
 
-    map<string, Class_table*>* class_table_map; // 全局类表
+    Class_table* class_table; // 全局类表
 
     string class_name = "";             // 当前类名
     string method_name = "";            // 当前方法名
@@ -127,14 +103,13 @@ public:
 
     Label *cur_L_while, *cur_L_end; // while语句标签 (用于continue和break语句)
 
-    tree::TempExp* this_temp = nullptr; // this指针
-
+    tree::TempExp* this_temp = nullptr;  // this指针
 
     ASTToTreeVisitor(AST_Semant_Map* ast_info)
         : ast_info(ast_info)
     {
         // 生成类表
-        class_table_map = gen_class_table_map(ast_info->name_maps);
+        class_table = gen_class_table_map(ast_info->name_maps);
     }
     ~ASTToTreeVisitor() { }
     tree::Program* getTree() { return tree_root; }

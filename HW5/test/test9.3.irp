@@ -31,7 +31,6 @@
                         </Memory>
                         <Name name="c2^m2"/>
                     </Move>
-
                     <Move>
                         <Memory type="INT">
                             <BinOp op="+" type="PTR">
