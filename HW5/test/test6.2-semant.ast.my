@@ -4,15 +4,15 @@
         <VarDeclList>
             <VarDecl>
                 <Type typeKind="CLASS">
-                    <IdExp id="D"/>
-                </Type>
-                <IdExp id="d"/>
-            </VarDecl>
-            <VarDecl>
-                <Type typeKind="CLASS">
                     <IdExp id="C"/>
                 </Type>
                 <IdExp id="c"/>
+            </VarDecl>
+            <VarDecl>
+                <Type typeKind="CLASS">
+                    <IdExp id="D"/>
+                </Type>
+                <IdExp id="d"/>
             </VarDecl>
         </VarDeclList>
         <StmList>

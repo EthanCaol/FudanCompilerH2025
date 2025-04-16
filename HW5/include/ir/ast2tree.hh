@@ -42,13 +42,21 @@ public:
         , offset(offset)
         , var_pos_map(var_pos_map)
         , method_class_map(method_class_map)
-        , method_pos_map(method_pos_map) { };
+        , method_pos_map(method_pos_map) {
+            cerr << "Class_table: " << class_name << endl;
+            for (auto var : *var_pos_map) {
+                cerr << "  " << var.first << endl;
+            }
+            for (auto method : *method_pos_map) {
+                cerr << "  " << method.first << endl;
+            }
+         };
     ~Class_table() { };
 
     int get_var_pos(string var_name)
     {
         if (var_pos_map->find(var_name) == var_pos_map->end()) {
-            cerr << "get_var_pos: " << var_name << "不存在" << endl;
+            cerr << "get_var_pos: " << class_name << "->" << var_name << "成员变量不存在" << endl;
             exit(-1);
         }
         return (*var_pos_map)[var_name];
@@ -56,7 +64,11 @@ public:
     int get_method_pos(string method_name)
     {
         if (method_pos_map->find(method_name) == method_pos_map->end()) {
-            cerr << "get_method_pos: " << method_name << "不存在" << endl;
+            cerr << "get_method_pos: " << class_name << "->" << method_name << "成员方法不存在" << endl;
+            cerr << "Class_table: " << class_name << endl;
+            for (auto method : *method_pos_map) {
+                cerr << "  " << method.first << endl;
+            }
             exit(-1);
         }
         return (*method_pos_map)[method_name];

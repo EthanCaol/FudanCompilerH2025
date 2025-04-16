@@ -73,7 +73,7 @@ class Type : public AST {
 public:
     TypeKind typeKind;
     IdExp* cid;    // 可能为空指针
-    IntExp* arity; // 可能为空指针
+    IntExp* arity; // int[]此处为0
     Type(Pos* pos)
         : AST(pos)
         , typeKind(TypeKind::INT) { };
@@ -84,7 +84,7 @@ public:
     Type(Pos* pos, IntExp* arity)
         : AST(pos)
         , typeKind(TypeKind::ARRAY)
-        , arity(arity) { }; // array must have arity=0
+        , arity(arity) { };
     Type(Pos* pos, TypeKind typeKind, IdExp* cid, IntExp* arity)
         : AST(pos)
         , typeKind(typeKind)

@@ -37,14 +37,17 @@ Class_table* gen_class_table(Name_Maps* name_maps, map<string, Class_table*>* cl
     if (par_class_name != "") {
         // 递归处理父类, 继承父类的成员变量和方法, 以及最末尾偏移量
         auto par_class_table = gen_class_table(name_maps, class_table_map, par_class_name);
-        var_pos_map->merge(*par_class_table->var_pos_map);
-        method_class_map->merge(*par_class_table->method_class_map);
-        method_pos_map->merge(*par_class_table->method_pos_map);
+        var_pos_map->insert(par_class_table->var_pos_map->begin(), par_class_table->var_pos_map->end());
+        method_class_map->insert(par_class_table->method_class_map->begin(), par_class_table->method_class_map->end());
+        method_pos_map->insert(par_class_table->method_pos_map->begin(), par_class_table->method_pos_map->end());
         offset = par_class_table->offset;
     }
 
     auto class_var_list = name_maps->get_class_var_list(class_name);
     for (auto var_name : *class_var_list) {
+        // 跳过父类的成员变量
+        if (var_pos_map->find(var_name) != var_pos_map->end())
+            continue;
         auto var_decl = name_maps->get_class_var(class_name, var_name);
         int len = var_decl->type->typeKind == TypeKind::INT ? int_length : address_length;
         (*var_pos_map)[var_name] = offset;
@@ -280,7 +283,7 @@ vector<tree::Stm*>* array_decl_helper(fdmj::VarDecl* node, tree::TempExp* array_
     auto sl = new vector<tree::Stm*>();
 
     int size; // 计算数组大小
-    if (type->arity != nullptr)
+    if (type->arity->val != 0)
         size = type->arity->val;
     else if (holds_alternative<vector<IntExp*>*>(init))
         size = get<vector<IntExp*>*>(init)->size();
