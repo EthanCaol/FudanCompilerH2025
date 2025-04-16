@@ -222,7 +222,7 @@ void AST_Name_Map_Visitor::visit(VarDecl* node)
 void AST_Name_Map_Visitor::visit(MethodDecl* node)
 {
     // 执行名称映射操作 (类->方法, 类->方法->参数列表)
-    Formal* return_f = new Formal(node->getPos(), new fdmj::Type(node->getPos()), new IdExp(node->getPos(), return_prefix + current_method_name));
+    Formal* return_f = new Formal(node->getPos(), node->type, new IdExp(node->getPos(), return_prefix + current_method_name));
     if (!name_maps->add_method(current_class_name, node->id->id, return_f)) {
         cerr << node->id->getPos()->print() << endl;
         cerr << "- 类方法名已存在: " << current_class_name << "->" << current_method_name << endl;
