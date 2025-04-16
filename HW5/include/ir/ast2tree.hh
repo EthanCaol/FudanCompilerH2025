@@ -44,11 +44,13 @@ public:
         , method_class_map(method_class_map)
         , method_pos_map(method_pos_map) {
             cerr << "Class_table: " << class_name << endl;
+            cerr << "  parent: " << par_class_name << endl;
+            cerr << "  offset: " << offset << endl;
             for (auto var : *var_pos_map) {
-                cerr << "  " << var.first << endl;
+                cerr << "  " << var.first << " : " << var.second << endl;
             }
             for (auto method : *method_pos_map) {
-                cerr << "  " << method.first << endl;
+                cerr << "  " << method.first << " : " << method.second << endl;
             }
          };
     ~Class_table() { };

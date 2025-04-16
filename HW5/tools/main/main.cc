@@ -37,7 +37,7 @@ int main(int argc, const char* argv[])
 
     string file;
     string dir = "";
-    file = dir + "test6";
+    file = dir + "test9";
     // file = dir + argv[argc - 1];
 
     string file_fmj = file + ".fmj";

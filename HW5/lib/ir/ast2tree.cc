@@ -56,12 +56,14 @@ Class_table* gen_class_table(Name_Maps* name_maps, map<string, Class_table*>* cl
 
     auto method_list = name_maps->get_method_list(class_name);
     for (auto method_name : *method_list) {
+
         // 如果父类有相同方法, 且覆盖, 则更新所处类名
-        // 返回值的指针不同, 则说明出现覆盖
-        if (method_pos_map->find(method_name) != method_pos_map->end()
-            && name_maps->get_method_return_formal(class_name, method_name)
+        if (method_pos_map->find(method_name) != method_pos_map->end()) {
+            // 返回值的指针不同, 则说明出现覆盖
+            if (name_maps->get_method_return_formal(class_name, method_name)
                 != name_maps->get_method_return_formal(par_class_name, method_name)) {
-            (*method_class_map)[method_name] = class_name;
+                (*method_class_map)[method_name] = class_name;
+            }
         }
 
         // 如果父类没有相同方法, 则添加
@@ -143,8 +145,9 @@ void ASTToTreeVisitor::visit(fdmj::Program* node)
     // 类声明列表
     for (auto cd : *(node->cdl)) {
         cd->accept(*this); // 类声明
-        assert(newNodes.size() == 1);
-        fdl->push_back(static_cast<tree::FuncDecl*>(newNodes[0]));
+        for (auto& newNode : newNodes)
+            if (newNode)
+                fdl->push_back(static_cast<tree::FuncDecl*>(newNode));
         newNodes.clear();
     }
 
@@ -282,8 +285,8 @@ vector<tree::Stm*>* array_decl_helper(fdmj::VarDecl* node, tree::TempExp* arr_te
 
     auto sl = new vector<tree::Stm*>();
 
-    int size; // 计算数组大小
-    if (type->arity->val != 0)
+    int size = 0; // 计算数组大小
+    if (type->arity && type->arity->val != 0)
         size = type->arity->val;
     else if (holds_alternative<vector<IntExp*>*>(init))
         size = get<vector<IntExp*>*>(init)->size();
@@ -366,6 +369,7 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
             // 成员变量是整型
             if (var_decl->type->typeKind == TypeKind::INT) {
                 if (holds_alternative<fdmj::IntExp*>(var_decl->init)) {
+                    // TODO: tree::Type::PTR ? 还是 INT
                     auto var_mem
                         = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(var_offset)));
                     int var_val = get<fdmj::IntExp*>(var_decl->init)->val;
@@ -1117,16 +1121,20 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
 
 // 表达式->this指针: this
 // EXP: THIS
-void ASTToTreeVisitor::visit(fdmj::This* node) { }
+void ASTToTreeVisitor::visit(fdmj::This* node) { newExp = new Tr_ex(this_temp); }
 
 // 表达式->类变量访问: 类对象.变量名
 // EXP: EXP '.' ID
 void ASTToTreeVisitor::visit(fdmj::ClassVar* node)
 {
-    auto class_table = (*class_table_map)[class_name];
+    node->obj->accept(*this);
+    auto obj = newExp->unEx(&temp_map)->exp;
+
+    auto obj_class_name = get<string>(ast_info->getSemant(node->obj)->get_type_par());
+    auto obj_class_table = (*class_table_map)[obj_class_name];
     auto var_name = node->id->id;
-    auto var_offset = class_table->get_var_pos(var_name);
-    auto var_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", newExp->unEx(&temp_map)->exp, new tree::Const(var_offset)));
+    auto var_offset = obj_class_table->get_var_pos(var_name);
+    auto var_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", obj, new tree::Const(var_offset)));
     newExp = new Tr_ex(var_mem);
 }
 
