@@ -238,7 +238,7 @@ QuadLoad* Tree2Quad::load_helper(Mem* node, TempExp* dst)
 
     // 构造返回临时变量, 并加入定义集合
     if (dst == nullptr)
-        dst = new TempExp(Type::INT, temp_map->newtemp());
+        dst = new TempExp(node->type, temp_map->newtemp());
 
     def->insert(dst->temp);
     return new QuadLoad(node, dst, mem_term, def, use);

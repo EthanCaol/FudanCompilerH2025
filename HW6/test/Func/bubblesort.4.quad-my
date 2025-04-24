@@ -86,8 +86,8 @@ Function b1^bubbleSort(t102, t103, t104) last_label=127 last_temp=155:
     MOVE_BINOP t138:INT <- (+, t107:INT, Const:1); def: 138 use: 107 
     MOVE_BINOP t139:INT <- (*, t138:INT, Const:4); def: 139 use: 138 
     MOVE_BINOP t140:PTR <- (+, t118:PTR, t139:INT); def: 140 use: 118 139 
-    LOAD t141:PTR <- Mem(t140:PTR); def: 141 use: 140 
-    CJUMP > t119:INT t141:PTR? L124 : L125; def: use: 119 141 
+    LOAD t141:INT <- Mem(t140:PTR); def: 141 use: 140 
+    CJUMP > t119:INT t141:INT? L124 : L125; def: use: 119 141 
     LABEL L124; def: use: 
     MOVE t121:PTR <- t103:PTR; def: 121 use: 103 
     LOAD t109:INT <- Mem(t103:PTR); def: 109 use: 103 
@@ -118,8 +118,8 @@ Function b1^bubbleSort(t102, t103, t104) last_label=127 last_temp=155:
     MOVE_BINOP t148:INT <- (+, t111:INT, Const:1); def: 148 use: 111 
     MOVE_BINOP t149:INT <- (*, t148:INT, Const:4); def: 149 use: 148 
     MOVE_BINOP t150:PTR <- (+, t125:PTR, t149:INT); def: 150 use: 125 149 
-    LOAD t151:PTR <- Mem(t150:PTR); def: 151 use: 150 
-    STORE t151:PTR -> Mem(t147:PTR); def: use: 147 151 
+    LOAD t151:INT <- Mem(t150:PTR); def: 151 use: 150 
+    STORE t151:INT -> Mem(t147:PTR); def: use: 147 151 
     MOVE_BINOP t113:INT <- (+, t100:INT, Const:1); def: 113 use: 100 
     MOVE t127:PTR <- t103:PTR; def: 127 use: 103 
     LOAD t114:INT <- Mem(t103:PTR); def: 114 use: 103 

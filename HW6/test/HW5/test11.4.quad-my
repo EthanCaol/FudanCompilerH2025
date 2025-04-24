@@ -26,10 +26,10 @@ Function _^main^_^main() last_label=105 last_temp=125:
     LABEL L103; def: use: 
     MOVE_BINOP t120:PTR <- (+, t109:PTR, t110:INT); def: 120 use: 109 110 
     MOVE_BINOP t121:PTR <- (+, t101:PTR, t110:INT); def: 121 use: 101 110 
-    LOAD t122:PTR <- Mem(t121:PTR); def: 122 use: 121 
+    LOAD t122:INT <- Mem(t121:PTR); def: 122 use: 121 
     MOVE_BINOP t123:PTR <- (+, t102:PTR, t110:INT); def: 123 use: 102 110 
-    LOAD t124:PTR <- Mem(t123:PTR); def: 124 use: 123 
-    MOVE_BINOP t125:INT <- (+, t122:PTR, t124:PTR); def: 125 use: 122 124 
+    LOAD t124:INT <- Mem(t123:PTR); def: 124 use: 123 
+    MOVE_BINOP t125:INT <- (+, t122:INT, t124:INT); def: 125 use: 122 124 
     STORE t125:INT -> Mem(t120:PTR); def: use: 120 125 
     MOVE_BINOP t110:INT <- (+, t110:INT, Const:4); def: 110 use: 110 
     JUMP L102; def: use: 

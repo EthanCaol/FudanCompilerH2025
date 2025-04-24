@@ -39,10 +39,10 @@ Function _^main^_^main() last_label=107 last_temp=137:
     LABEL L103; def: use: 
     MOVE_BINOP t128:PTR <- (+, t108:PTR, t109:INT); def: 128 use: 108 109 
     MOVE_BINOP t129:PTR <- (+, t100:PTR, t109:INT); def: 129 use: 100 109 
-    LOAD t130:PTR <- Mem(t129:PTR); def: 130 use: 129 
+    LOAD t130:INT <- Mem(t129:PTR); def: 130 use: 129 
     MOVE_BINOP t131:PTR <- (+, t101:PTR, t109:INT); def: 131 use: 101 109 
-    LOAD t132:PTR <- Mem(t131:PTR); def: 132 use: 131 
-    MOVE_BINOP t133:INT <- (+, t130:PTR, t132:PTR); def: 133 use: 130 132 
+    LOAD t132:INT <- Mem(t131:PTR); def: 132 use: 131 
+    MOVE_BINOP t133:INT <- (+, t130:INT, t132:INT); def: 133 use: 130 132 
     STORE t133:INT -> Mem(t128:PTR); def: use: 128 133 
     MOVE_BINOP t109:INT <- (+, t109:INT, Const:4); def: 109 use: 109 
     JUMP L102; def: use: 
@@ -57,5 +57,5 @@ Function _^main^_^main() last_label=107 last_temp=137:
     MOVE_BINOP t134:INT <- (+, t102:INT, Const:1); def: 134 use: 102 
     MOVE_BINOP t135:INT <- (*, t134:INT, Const:4); def: 135 use: 134 
     MOVE_BINOP t136:PTR <- (+, t118:PTR, t135:INT); def: 136 use: 118 135 
-    LOAD t137:PTR <- Mem(t136:PTR); def: 137 use: 136 
-    RETURN t137:PTR; def: use: 137 
+    LOAD t137:INT <- Mem(t136:PTR); def: 137 use: 136 
+    RETURN t137:INT; def: use: 137 
