@@ -27,12 +27,14 @@ Method_var_table* generate_method_var_table(string class_name, string method_nam
 // 即所有类使用相同的类表, 所有类的所有可能变量和方法都列在同一记录布局中
 class Class_table {
 public:
+    int offset = 0;
     map<string, int>* var_pos_map;    // 变量位置映射
     map<string, int>* method_pos_map; // 方法位置映射
 
-    Class_table(map<string, int>* var_pos_map, map<string, int>* method_pos_map)
+    Class_table(map<string, int>* var_pos_map, map<string, int>* method_pos_map, int offset)
         : var_pos_map(var_pos_map)
-        , method_pos_map(method_pos_map) { };
+        , method_pos_map(method_pos_map)
+        , offset(offset) { };
     ~Class_table() { };
 
     int get_var_pos(string var_name)
@@ -103,7 +105,7 @@ public:
 
     Label *cur_L_while, *cur_L_end; // while语句标签 (用于continue和break语句)
 
-    tree::TempExp* this_temp = nullptr;  // this指针
+    tree::TempExp* this_temp = nullptr; // this指针
 
     ASTToTreeVisitor(AST_Semant_Map* ast_info)
         : ast_info(ast_info)

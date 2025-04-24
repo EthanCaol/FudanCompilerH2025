@@ -28,6 +28,8 @@ Class_table* gen_class_table_map(Name_Maps* name_maps)
     set<string> global_method_list;
     set<string>* class_list = name_maps->get_class_list();
     for (auto class_name : *class_list) {
+        if (class_name == MAIN_class_name)
+            continue;
         auto class_var_list = name_maps->get_class_var_list(class_name);
         auto class_method_list = name_maps->get_method_list(class_name);
         global_var_list.insert(class_var_list->begin(), class_var_list->end());
@@ -47,7 +49,7 @@ Class_table* gen_class_table_map(Name_Maps* name_maps)
         offset += address_length;
     }
 
-    return new Class_table(var_pos_map, method_pos_map);
+    return new Class_table(var_pos_map, method_pos_map, offset);
 }
 
 // 为当前函数生成方法变量表
@@ -316,7 +318,7 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
 
         // 为类实例分配空间
         auto class_temp = new tree::TempExp(tree::Type::PTR, temp);
-        auto class_size = class_var_list->size() * address_length + class_method_list->size() * address_length;
+        auto class_size = class_table->offset;
         auto class_malloc_args = new vector<tree::Exp*> { new tree::Const(class_size) };
         auto class_malloc = new tree::ExtCall(tree::Type::PTR, "malloc", class_malloc_args);
         newNodes.push_back(new tree::Move(class_temp, class_malloc));
@@ -929,7 +931,7 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
                 sl->push_back(stm);
             newExp = new Tr_ex(new tree::Eseq(tree::Type::INT, new tree::Seq(sl), t_temp));
         }
-        
+
         else {
             cerr << "BinaryOp: " << op << "未知运算方式" << endl;
             exit(-1);

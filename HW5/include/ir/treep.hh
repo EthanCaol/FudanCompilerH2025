@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdio>
 #include <string>
+#include <cassert>
 #include "temp.hh"
 
 using namespace std;
@@ -277,7 +278,10 @@ public:
         : Exp(t)
         , op(op)
         , left(left)
-        , right(right) { };
+        , right(right)
+    {
+        assert(left != nullptr);
+    };
     Kind getTreeKind() { return Kind::BINOP; }
     void accept(Visitor& v) { v.visit(this); }
 };
