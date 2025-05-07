@@ -3,7 +3,7 @@ Function _^main^_^main() last_label=105 last_temp=102:
     Exit labels: L102 L103 
     LABEL L105; def: use: 
     MOVE t102:INT <- Const:0; def: 102 use: 
-    CJUMP > t100:INT Const:1? L102 : L103; def: use: 100 
+    CJUMP > t10000:INT Const:1? L102 : L103; def: use: 10000 
   Block: Entry Label: L102
     Exit labels: L103 
     LABEL L102; def: use: 
@@ -13,5 +13,5 @@ Function _^main^_^main() last_label=105 last_temp=102:
     Exit labels: 
     LABEL L103; def: use: 
     PHI t102:INT <- (); def: use: 
-    MOVE t100:INT <- t102:INT; def: 100 use: 102 
-    RETURN t100:INT; def: use: 100 
+    MOVE t10000:INT <- t102:INT; def: 10000 use: 102 
+    RETURN t10000:INT; def: use: 10000 
