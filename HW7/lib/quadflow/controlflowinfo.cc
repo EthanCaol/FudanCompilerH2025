@@ -15,18 +15,19 @@
 using namespace std;
 using namespace quad;
 
-void ControlFlowInfo::computeAllBlocks() {
+void ControlFlowInfo::computeAllBlocks()
+{
 #ifdef DEBUG
     cout << "Computing all blocks in function: " << func->funcname << endl;
     cout << "#blocks = " << func->quadblocklist->size() << endl;
 #endif
     // Compute all blocks in the function
     if (func == nullptr || func->quadblocklist == nullptr) {
-        return ; // Nothing to do
+        return; // Nothing to do
     }
-    //Collect block information
-    allBlocks = set<int>(); //empty set
-    labelToBlock = map<int, QuadBlock*>(); //empty map
+    // Collect block information
+    allBlocks = set<int>();                // empty set
+    labelToBlock = map<int, QuadBlock*>(); // empty map
 
     for (auto block : *func->quadblocklist) {
         if (block->entry_label) {
@@ -43,22 +44,25 @@ void ControlFlowInfo::computeAllBlocks() {
 #endif
 }
 
-void ControlFlowInfo::computeUnreachableBlocks() {
+void ControlFlowInfo::computeUnreachableBlocks()
+{
 #ifdef DEBUG
     cout << "Computing unreachable blocks in function: " << func->funcname << endl;
 #endif
     // Compute unreachable blocks in the function
     if (func == nullptr || func->quadblocklist == nullptr) {
-        return ; // Nothing to do
+        return; // Nothing to do
     }
-    unreachableBlocks = set<int>(); //empty set
+    unreachableBlocks = set<int>(); // empty set
 
-    if (successors.empty()) computeSuccessors(); //need this
+    if (successors.empty())
+        computeSuccessors(); // need this
 
-    set<int> visited = set<int>(); //empty set
-    set<int> worklist = set<int>(); worklist.insert(entryBlock);
-    while (!worklist.empty())
-    {   int block = *worklist.begin(); 
+    set<int> visited = set<int>(); // empty set
+    set<int> worklist = set<int>();
+    worklist.insert(entryBlock);
+    while (!worklist.empty()) {
+        int block = *worklist.begin();
         worklist.erase(worklist.begin());
         visited.insert(block);
         for (auto succ : successors[block]) {
@@ -67,8 +71,9 @@ void ControlFlowInfo::computeUnreachableBlocks() {
             }
         }
     }
-    if (allBlocks.empty()) computeAllBlocks(); //need this
-    unreachableBlocks = set<int>(); //empty set
+    if (allBlocks.empty())
+        computeAllBlocks();         // need this
+    unreachableBlocks = set<int>(); // empty set
     for (auto block : allBlocks) {
         if (visited.find(block) == visited.end()) {
             unreachableBlocks.insert(block);
@@ -89,17 +94,20 @@ void ControlFlowInfo::computeUnreachableBlocks() {
 #endif
 }
 
-void ControlFlowInfo::eliminateUnreachableBlocks() {
+// 从函数中移除不可达基本块 并清空所有集合和映射
+void ControlFlowInfo::eliminateUnreachableBlocks()
+{
 #ifdef DEBUG
     cout << "Eliminating unreachable blocks in function: " << func->funcname << endl;
 #endif
     // Eliminate unreachable blocks from the function
     if (func == nullptr || func->quadblocklist == nullptr) {
-        return ; // Nothing to do
+        return; // Nothing to do
     }
-    if (!unreachableBlocks.empty()) computeUnreachableBlocks();
-    
-    int i=0;
+    if (!unreachableBlocks.empty())
+        computeUnreachableBlocks();
+
+    int i = 0; // 遍历函数的所有基本块
     while (i < func->quadblocklist->size()) {
         int block = func->quadblocklist->at(i)->entry_label->num;
         if (unreachableBlocks.find(block) == unreachableBlocks.end()) {
@@ -117,20 +125,30 @@ void ControlFlowInfo::eliminateUnreachableBlocks() {
 #endif
         }
     }
-    //recompute everything if already computed
-    if (!allBlocks.empty()) computeAllBlocks();
-    if (!unreachableBlocks.empty()) computeUnreachableBlocks();
-    if (!successors.empty()) computeSuccessors();
-    if (!predecessors.empty()) computePredecessors();
-    if (!dominators.empty()) computeDominators();
-    if (!immediateDominator.empty()) computeImmediateDominator();
-    if (!dominanceFrontiers.empty()) computeDominanceFrontiers();
-    if (!domTree.empty()) computeDomTree();
+
+    // 重新计算所有集合和映射
+    if (!allBlocks.empty())
+        computeAllBlocks();
+    if (!unreachableBlocks.empty())
+        computeUnreachableBlocks();
+    if (!successors.empty())
+        computeSuccessors();
+    if (!predecessors.empty())
+        computePredecessors();
+    if (!dominators.empty())
+        computeDominators();
+    if (!immediateDominator.empty())
+        computeImmediateDominator();
+    if (!dominanceFrontiers.empty())
+        computeDominanceFrontiers();
+    if (!domTree.empty())
+        computeDomTree();
 }
 
-static void pMap(map<int, set<int>>& map2set, bool rightarrow) {
+static void pMap(map<int, set<int>>& map2set, bool rightarrow)
+{
     for (auto& pair : map2set) {
-        cout << "Block: " << pair.first << (rightarrow?" -> ":" <- ");
+        cout << "Block: " << pair.first << (rightarrow ? " -> " : " <- ");
         for (auto dom : pair.second) {
             cout << dom << " ";
         }
@@ -138,51 +156,60 @@ static void pMap(map<int, set<int>>& map2set, bool rightarrow) {
     }
 }
 
-void ControlFlowInfo::printPredecessors() {
+void ControlFlowInfo::printPredecessors()
+{
     cout << "Predecessors:" << endl;
-    pMap(predecessors, false); //leftarrow
-} 
-
-void ControlFlowInfo::printSuccessors() {
-    cout << "Successors:" << endl;
-    pMap(successors, true); //rightarrow
-} 
-
-void ControlFlowInfo::printDominators() {
-    pMap(dominators, false); //leftarrow (been dominated)
+    pMap(predecessors, false); // leftarrow
 }
 
-void ControlFlowInfo::printImmediateDominators() {
+void ControlFlowInfo::printSuccessors()
+{
+    cout << "Successors:" << endl;
+    pMap(successors, true); // rightarrow
+}
+
+void ControlFlowInfo::printDominators()
+{
+    pMap(dominators, false); // leftarrow (been dominated)
+}
+
+void ControlFlowInfo::printImmediateDominators()
+{
     for (auto& pair : immediateDominator) {
         cout << "Block: " << pair.first << " -> " << pair.second << endl;
     }
 }
 
-void ControlFlowInfo::printDominanceFrontier() {
+void ControlFlowInfo::printDominanceFrontier()
+{
     cout << "Dominance Frontier:" << endl;
-    pMap(dominanceFrontiers, true); //rightarrow
+    pMap(dominanceFrontiers, true); // rightarrow
 }
 
-void ControlFlowInfo::printDomTree() {
+void ControlFlowInfo::printDomTree()
+{
     cout << "Dominator Tree:" << endl;
-    pMap(domTree, true); //rightarrow
-} 
+    pMap(domTree, true); // rightarrow
+}
 
-void ControlFlowInfo::computePredecessors() {
+void ControlFlowInfo::computePredecessors()
+{
     // Compute predecessors for each block
-    
+
     if (func == nullptr || func->quadblocklist == nullptr) {
-        return ; // Nothing to do
+        return; // Nothing to do
     }
 
-    predecessors = map<int, set<int>>(); //empty set
+    predecessors = map<int, set<int>>(); // empty set
 
     for (auto block : *func->quadblocklist) {
-        if (!block->entry_label) continue;
-        
+        if (!block->entry_label)
+            continue;
+
         for (auto predBlock : *func->quadblocklist) {
-            if (!predBlock->exit_labels) continue;
-            
+            if (!predBlock->exit_labels)
+                continue;
+
             for (auto exitLabel : *predBlock->exit_labels) {
                 if (exitLabel->num == block->entry_label->num) {
                     predecessors[block->entry_label->num].insert(predBlock->entry_label->num);
@@ -192,17 +219,19 @@ void ControlFlowInfo::computePredecessors() {
     }
 }
 
-void ControlFlowInfo::computeSuccessors() {
+void ControlFlowInfo::computeSuccessors()
+{
     // Compute successors for each block
     if (func == nullptr || func->quadblocklist == nullptr) {
-        return ; // Nothing to do
+        return; // Nothing to do
     }
 
-    successors = map<int, set<int>>(); //empty set
+    successors = map<int, set<int>>(); // empty set
 
     for (auto block : *func->quadblocklist) {
-        if (!block->entry_label) continue;
-        
+        if (!block->entry_label)
+            continue;
+
         if (block->exit_labels == nullptr || block->exit_labels->empty()) {
             continue; // No exit labels, no successors
         }
@@ -215,15 +244,16 @@ void ControlFlowInfo::computeSuccessors() {
     }
 }
 
-void ControlFlowInfo::computeDominators() {
+void ControlFlowInfo::computeDominators()
+{
 #ifdef DEBUG
     std::cout << "Computing dominators for: " << func->funcname << endl;
 #endif
-    if (successors.empty()) { //need to have the successors computed first
+    if (successors.empty()) { // need to have the successors computed first
         computeSuccessors();
     }
-    
-    dominators = map<int, set<int>>(); //empty set
+
+    dominators = map<int, set<int>>(); // empty set
 
     // Compute dominators using iterative algorithm
 
@@ -240,17 +270,17 @@ void ControlFlowInfo::computeDominators() {
             dominators[block->entry_label->num] = allBlocks;
         }
     }
-    
+
     // Entry block is only dominated by itself
     int entryBlock;
-    if (func->quadblocklist && func->quadblocklist->size()>0) {
+    if (func->quadblocklist && func->quadblocklist->size() > 0) {
         if (func->quadblocklist->at(0)->entry_label) {
             entryBlock = func->quadblocklist->at(0)->entry_label->num;
-            dominators[entryBlock].clear(); // Clear the entry block's dominator set
+            dominators[entryBlock].clear();            // Clear the entry block's dominator set
             dominators[entryBlock].insert(entryBlock); // Add itself
         } else {
             cerr << "Error: Entry block has no entry label!" << endl;
-            return ;
+            return;
         }
     }
 
@@ -258,27 +288,30 @@ void ControlFlowInfo::computeDominators() {
     std::cout << "Initial Dominators for: " << func->funcname << endl;
     pMap(dominators, false);
 #endif
-    
+
     // Iteratively compute dominators
     bool changed = true;
-    int i=0;
+    int i = 0;
     while (changed) {
         changed = false;
-        
+
         for (auto block : *func->quadblocklist) {
-            if (!block->entry_label) continue;
+            if (!block->entry_label)
+                continue;
             int blockNum = block->entry_label->num;
-            
+
             // Skip entry block
-            if (blockNum == entryBlock) continue;
-            
+            if (blockNum == entryBlock)
+                continue;
+
             // get the predecessors of this block
             set<int> preds = predecessors[blockNum];
-            if (preds.empty()) continue; // No predecessors, can't compute dominators
-            
+            if (preds.empty())
+                continue; // No predecessors, can't compute dominators
+
             // Compute new dominator set: intersection of all predecessors' dominators
             set<int> newDom;
-            
+
             bool first = true;
             for (auto pred : preds) {
                 if (first) {
@@ -287,10 +320,10 @@ void ControlFlowInfo::computeDominators() {
                     first = false;
                 } else {
                     // For subsequent predecessors, intersect with their dominator sets
-                    set<int> intersection= newDom;
+                    set<int> intersection = newDom;
                     for (auto dom : newDom) {
                         if (dominators[pred].find(dom) == dominators[pred].end()) {
-                            //if not found in the pred's dominator set, remove it
+                            // if not found in the pred's dominator set, remove it
                             intersection.erase(dom);
                         }
                     }
@@ -299,11 +332,11 @@ void ControlFlowInfo::computeDominators() {
             }
 
             newDom.insert(blockNum); // Add itself
-            
+
             // Check if dominator set has changed
-            if (newDom == dominators[blockNum]) { //set equality
-                continue; // No change
-            } else{
+            if (newDom == dominators[blockNum]) { // set equality
+                continue;                         // No change
+            } else {
                 dominators[blockNum] = newDom;
                 changed = true;
             }
@@ -315,16 +348,18 @@ void ControlFlowInfo::computeDominators() {
 #endif
 }
 
-void ControlFlowInfo::computeImmediateDominator() {
+void ControlFlowInfo::computeImmediateDominator()
+{
 #ifdef DEBUG
     std::cout << "Start to find immediate dominators for: " << func->funcname << endl;
 #endif
-    
-    immediateDominator = map<int, int>(); //empty set
+
+    immediateDominator = map<int, int>(); // empty set
 
     // Compute immediate dominators for each block
-    if (dominators.empty())  computeDominators();
-    
+    if (dominators.empty())
+        computeDominators();
+
     // Initialize immediate dominator for each block
     for (auto& pair : dominators) {
         int block = pair.first;
@@ -335,12 +370,13 @@ void ControlFlowInfo::computeImmediateDominator() {
     for (auto& pair : dominators) {
         int block = pair.first;
         set<int>& doms = pair.second;
-        
+
         // A block's immediate dominator is the closest dominator
         int idom = -1;
         for (auto dom : doms) {
-            if (dom == block) continue; // Skip self
-            
+            if (dom == block)
+                continue; // Skip self
+
             if (idom == -1) {
                 idom = dom; // First dominator
             } else {
@@ -350,10 +386,10 @@ void ControlFlowInfo::computeImmediateDominator() {
                 }
             }
         }
-        
-        if (idom!=-1) {
+
+        if (idom != -1) {
             immediateDominator[block] = idom;
-        } else //no dominator other than self (entry node)
+        } else // no dominator other than self (entry node)
             immediateDominator[block] = -1;
     }
 #ifdef DEBUG
@@ -364,65 +400,75 @@ void ControlFlowInfo::computeImmediateDominator() {
 #endif
 }
 
-void ControlFlowInfo::computeDomTree() {
-    #ifdef DEBUG
-        std::cout << "Computing dominator tree for: " << func->funcname << endl;
-    #endif
-        // Compute dominator tree using immediate dominators
-        
-        domTree = map<int, set<int>>(); //empty set
+void ControlFlowInfo::computeDomTree()
+{
+#ifdef DEBUG
+    std::cout << "Computing dominator tree for: " << func->funcname << endl;
+#endif
+    // Compute dominator tree using immediate dominators
 
-        if (immediateDominator.empty()) computeImmediateDominator();
-        
-        // Initialize dominator tree
-        for (auto& pair : immediateDominator) {
-            int block = pair.first;
-            domTree[block] = set<int>();
+    domTree = map<int, set<int>>(); // empty set
+
+    if (immediateDominator.empty())
+        computeImmediateDominator();
+
+    // Initialize dominator tree
+    for (auto& pair : immediateDominator) {
+        int block = pair.first;
+        domTree[block] = set<int>();
+    }
+
+    // Build the dominator tree
+    for (auto& pair : immediateDominator) {
+        int block = pair.first;
+        int idom = pair.second;
+
+        if (idom != -1) {
+            domTree[idom].insert(block);
         }
-        
-        // Build the dominator tree
-        for (auto& pair : immediateDominator) {
-            int block = pair.first;
-            int idom = pair.second;
-            
-            if (idom != -1) {
-                domTree[idom].insert(block);
-            }
-        }
-    #ifdef DEBUG
-        std::cout << "Final Dominator Tree for: " << func->funcname << endl;
-        pMap(domTree, true);
-    #endif  
+    }
+#ifdef DEBUG
+    std::cout << "Final Dominator Tree for: " << func->funcname << endl;
+    pMap(domTree, true);
+#endif
 }
 
-void ControlFlowInfo::computeDominanceFrontiers() {
+void ControlFlowInfo::computeDominanceFrontiers()
+{
 #ifdef DEBUG
     std::cout << "Computing dominance frontier for: " << func->funcname << endl;
 #endif
 
-    dominanceFrontiers = map<int, set<int>>(); //empty set
+    dominanceFrontiers = map<int, set<int>>(); // empty set
 
-    //get the prerequisites done: successors, dominators, domTree
-    if (successors.empty())  computeSuccessors();
-    if (predecessors.empty())  computePredecessors();
-    if (dominators.empty()) computeDominators();
-    if (immediateDominator.empty()) computeImmediateDominator();
-    if (domTree.empty()) computeDomTree();
+    // get the prerequisites done: successors, dominators, domTree
+    if (successors.empty())
+        computeSuccessors();
+    if (predecessors.empty())
+        computePredecessors();
+    if (dominators.empty())
+        computeDominators();
+    if (immediateDominator.empty())
+        computeImmediateDominator();
+    if (domTree.empty())
+        computeDomTree();
 
     // Compute dominance frontier for each block
     for (auto block : *func->quadblocklist) {
-        if (!block->entry_label) continue;
+        if (!block->entry_label)
+            continue;
 
         int blockNum = block->entry_label->num;
-        
-        //go over the dominator tree to find it's dominatees
+
+        // go over the dominator tree to find it's dominatees
         bool done = false;
-        stack<int> worklist; worklist.push(blockNum);
+        stack<int> worklist;
+        worklist.push(blockNum);
         while (!done) {
-            int dom = worklist.top(); worklist.pop();
+            int dom = worklist.top();
+            worklist.pop();
             for (auto succ : successors[dom]) {
-                if (dominators[succ].find(blockNum) == dominators[succ].end() ||
-                            succ == blockNum) {
+                if (dominators[succ].find(blockNum) == dominators[succ].end() || succ == blockNum) {
                     // If dom does not dominate succ and not itself, add to dominance frontier
                     if (dominanceFrontiers.find(blockNum) == dominanceFrontiers.end()) {
                         dominanceFrontiers[blockNum] = set<int>();
@@ -435,7 +481,7 @@ void ControlFlowInfo::computeDominanceFrontiers() {
             }
             if (worklist.empty()) {
                 done = true; // No more dominator tree nodes
-            } 
+            }
         }
     }
 #ifdef DEBUG
@@ -444,21 +490,22 @@ void ControlFlowInfo::computeDominanceFrontiers() {
 #endif
 }
 
-void ControlFlowInfo::computeEverything() {
+void ControlFlowInfo::computeEverything()
+{
     // Compute all control flow information
     computeAllBlocks();
     computeUnreachableBlocks();
     eliminateUnreachableBlocks();
 
-    computePredecessors(); 
+    computePredecessors();
 #ifdef DEBUG
     printPredecessors();
 #endif
-    computeSuccessors(); 
+    computeSuccessors();
 #ifdef DEBUG
     printSuccessors();
 #endif
-    computeDominators(); 
+    computeDominators();
 #ifdef DEBUG
     printDominators();
 #endif

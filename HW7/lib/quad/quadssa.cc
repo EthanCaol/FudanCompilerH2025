@@ -18,55 +18,60 @@
 using namespace std;
 using namespace quad;
 
-// Forward declarations for internal functions
+// 函数声明前移
 static void deleteUnreachableBlocks(QuadFuncDecl* func, ControlFlowInfo* domInfo);
 static void placePhi(QuadFuncDecl* func, ControlFlowInfo* domInfo);
 static void renameVariables(QuadFuncDecl* func, ControlFlowInfo* domInfo);
 static void cleanupUnusedPhi(QuadFuncDecl* func);
 
-static void deleteUnreachableBlocks(QuadFuncDecl* func, ControlFlowInfo* domInfo)
-{
-    return; // Placeholder for the actual implementation
-}
+// 删除不可达基本块
+static void deleteUnreachableBlocks(QuadFuncDecl* func, ControlFlowInfo* domInfo) { domInfo->eliminateUnreachableBlocks(); }
+
+// 在支配边界插入Phi函数
 static void placePhi(QuadFuncDecl* func, ControlFlowInfo* domInfo)
 {
-    return; // Placeholder for the actual implementation
+
+    //
 }
+
+// 重命名变量(确保每个变量仅赋值一次)
 static void renameVariables(QuadFuncDecl* func, ControlFlowInfo* domInfo)
 {
-    return; // Placeholder for the actual implementation
+    //
 }
+
+// 清理无用的Phi函数
 static void cleanupUnusedPhi(QuadFuncDecl* func)
 {
-    return; // Placeholder for the actual implementation
+    //
 }
 
 QuadProgram* quad2ssa(QuadProgram* program)
 {
-    // Create a new QuadProgram to hold the SSA version
     QuadProgram* ssaProgram = new QuadProgram(static_cast<tree::Program*>(program->node), new vector<QuadFuncDecl*>());
-    // Iterate through each function in the original program
+
     for (auto func : *program->quadFuncDeclList) {
-        // Create a new ControlFlowInfo object for the function
+        // 创建控制流信息对象
         ControlFlowInfo* domInfo = new ControlFlowInfo(func);
-        // Compute control flow information
+
+        // 计算支配关系、前驱后继等控制流信息
         domInfo->computeEverything();
 
-        // Eliminate unreachable blocks
+        // 删除不可达的基本块
         deleteUnreachableBlocks(func, domInfo);
 
-        // Place phi functions
+        // 在支配边界插入Phi函数
         placePhi(func, domInfo);
 
-        // Rename variables
+        // 重命名变量(确保每个变量仅赋值一次)
         renameVariables(func, domInfo);
 
-        // Cleanup unused phi functions
+        // 清理无用的Phi函数
         cleanupUnusedPhi(func);
 
-        // Add the SSA version of the function to the new program
+        // 将处理后的函数添加到新程序中
         ssaProgram->quadFuncDeclList->push_back(func);
     }
-    // return ssaProgram; //uncomment this line
-    return program; // delete this line
+
+    return ssaProgram;
 }

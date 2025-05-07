@@ -7,46 +7,46 @@
 #include <vector>
 #include "quad.hh"
 
-// 控制流
+// 函数控制流信息
 class ControlFlowInfo {
 public:
-    quad::QuadFuncDecl* func;                // 基本块化的四元式程序
-    map<int, quad::QuadBlock*> labelToBlock; // 标签到基本块的映射
-    int entryBlock;                          // 函数的入口基本块
+    quad::QuadFuncDecl* func; // 基本块化的四元式程序
 
-    set<int> allBlocks;         // 函数中所有基本块的集合
-    set<int> unreachableBlocks; // 不可达基本块的集合
+    map<int, quad::QuadBlock*> labelToBlock; // 标签->基本块
+    int entryBlock;                          // 首块的入口标签
 
-    // int 是标签编号，代表 QuadFuncDecl 中的一个基本块
-    map<int, set<int>> predecessors;       // 基本块到其前驱基本块的映射
-    map<int, set<int>> successors;         // 基本块到其后继基本块的映射
-    map<int, set<int>> dominators;         // 基本块到其支配者的映射
-    map<int, int> immediateDominator;      // 基本块到其直接支配者的映射
-    map<int, set<int>> dominanceFrontiers; // 基本块到其支配边界的映射
-    map<int, set<int>> domTree;            // 支配树（节点到其子基本块的映射）
+    set<int> allBlocks;         // 基本块集
+    set<int> unreachableBlocks; // 不可达基本块集
+
+    // int是基本块标签编号
+    map<int, set<int>> predecessors; // 基本块->前驱基本块
+    map<int, set<int>> successors;   // 基本块->后继基本块
+
+    map<int, set<int>> dominators;         // 基本块->支配者
+    map<int, int> immediateDominator;      // 基本块->直接支配者
+    map<int, set<int>> dominanceFrontiers; // 基本块->支配边界
+    map<int, set<int>> domTree;            // 支配树 (节点->子基本块)
 
     ControlFlowInfo(quad::QuadFuncDecl* func)
         : func(func)
     {
+        // 记录首块的入口标签
         entryBlock = -1;
-        if (func->quadblocklist != nullptr && !func->quadblocklist->empty()) {
+        if (func->quadblocklist != nullptr && !func->quadblocklist->empty())
             entryBlock = func->quadblocklist->at(0)->entry_label->num;
-        }
-        if (entryBlock == -1) {
-            cerr << "错误：函数中未找到入口基本块" << endl;
-        }
-        for (auto block : *func->quadblocklist) {
-            if (block->entry_label) {
+
+        if (entryBlock == -1)
+            cerr << "错误: 函数无入口基本块" << endl;
+
+        // 映射 (标签号->基本块)
+        for (auto block : *func->quadblocklist)
+            if (block->entry_label)
                 labelToBlock[block->entry_label->num] = block;
-            }
-        }
     }
 
     void computeAllBlocks();           // 计算所有基本块
     void computeUnreachableBlocks();   // 计算不可达基本块
-    void eliminateUnreachableBlocks(); // 从函数中移除不可达基本块，
-                                       // 并清空上述所有集合和映射，
-                                       // 因为可能需要重新计算！
+    void eliminateUnreachableBlocks(); // 从函数中移除不可达基本块 并清空所有集合和映射
 
     void printPredecessors();        // 打印前驱信息
     void printSuccessors();          // 打印后继信息
@@ -67,12 +67,13 @@ public:
 
 class DataFlowInfo {
 public:
-    quad::QuadFuncDecl* func;                                    // blocked quad program
-    set<int> allVars;                                            // Set of all variables
-    map<int, set<pair<quad::QuadBlock*, quad::QuadStm*>>>* defs; // where the variable is used
-    map<int, set<pair<quad::QuadBlock*, quad::QuadStm*>>>* uses; // where the variable is used
-    map<quad::QuadStm*, set<int>>* liveout;                      // live_in vars of a statement
-    map<quad::QuadStm*, set<int>>* livein;                       // live_in vars of a statment
+    quad::QuadFuncDecl* func;                                    // 基本块化的四元式程序
+
+    set<int> allVars;                                            // 变量集
+    map<int, set<pair<quad::QuadBlock*, quad::QuadStm*>>>* defs; // 变量定义: 变量->{<基本块, 语句>}
+    map<int, set<pair<quad::QuadBlock*, quad::QuadStm*>>>* uses; // 变量使用: 变量->{<基本块, 语句>}
+    map<quad::QuadStm*, set<int>>* liveout;                      // 语句出口变量集
+    map<quad::QuadStm*, set<int>>* livein;                       // 语句入口变量集
 
     DataFlowInfo(quad::QuadFuncDecl* func)
         : func(func)
