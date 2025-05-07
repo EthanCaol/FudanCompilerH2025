@@ -375,6 +375,8 @@ public:
     QuadCJump* clone() const override;
 };
 
+// 语句->Phi函数
+// Phi: temp <- {<temp, label>}
 class QuadPhi : public QuadStm {
 public:
     TempExp* temp;

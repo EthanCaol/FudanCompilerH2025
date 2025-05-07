@@ -2,6 +2,7 @@
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "files.associations": {
         "*.dbclient-js": "javascript",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "ratio": "cpp"
     }
 }

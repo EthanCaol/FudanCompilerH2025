@@ -67,9 +67,11 @@ public:
 
 class DataFlowInfo {
 public:
-    quad::QuadFuncDecl* func;                                    // 基本块化的四元式程序
+    quad::QuadFuncDecl* func; // 基本块化的四元式程序
 
-    set<int> allVars;                                            // 变量集
+    set<int> allVars;        // 变量集
+    map<int, Type> varTypeMap; // 变量类型
+
     map<int, set<pair<quad::QuadBlock*, quad::QuadStm*>>>* defs; // 变量定义: 变量->{<基本块, 语句>}
     map<int, set<pair<quad::QuadBlock*, quad::QuadStm*>>>* uses; // 变量使用: 变量->{<基本块, 语句>}
     map<quad::QuadStm*, set<int>>* liveout;                      // 语句出口变量集

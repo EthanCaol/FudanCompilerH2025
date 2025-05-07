@@ -25,8 +25,8 @@ int main(int argc, const char* argv[])
     chdir("../../test");
 
     string file;
-    string dir = "";
-    file = dir + "hw4test01";
+    string dir = "HW4/";
+    file = dir + "hw4test03";
     // file = dir + argv[argc - 1];
 
     string file_quad_xml = file + ".4-xml.quad";
