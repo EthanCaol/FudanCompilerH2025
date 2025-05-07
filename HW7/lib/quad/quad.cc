@@ -63,7 +63,7 @@ string QuadTerm::get_name() {
     if (kind == QuadTermKind::MAME) {
         return get<std::string>(term);
     }
-    return nullptr;
+    return "";
 }
 
 QuadTerm* QuadTerm::clone() const {
