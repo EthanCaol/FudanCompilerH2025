@@ -72,6 +72,7 @@ static map<int, vector<Temp*>> Stack;
 
 static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
 {
+    cout << "Rename: " << n << endl;
     QuadBlock* block = domInfo->labelToBlock[n];
 
     map<int, int> StackTimes;
@@ -86,7 +87,7 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
         }
 
         if (S->kind == QuadKind::PHI) {
-            printf("Phi: ");
+            printf(" ");
         }
 
         // 替换def
@@ -97,7 +98,7 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
 
             // 记录压栈次数, 方便弹出
             if (StackTimes.find(i->num) == StackTimes.end())
-                StackTimes[i->num] = 0;
+                StackTimes[i->num] = 1;
             else
                 StackTimes[i->num]++;
         }
