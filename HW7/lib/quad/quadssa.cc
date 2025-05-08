@@ -55,8 +55,10 @@ static void placePhi(ControlFlowInfo* domInfo)
                 auto Y_entry = Y_block->quadlist->at(0);
                 auto& Y_liveout = dataFlowInfo.liveout->at(Y_entry);
                 if (A_phi[Y].find(a) == A_phi[Y].end() && Y_liveout.find(a) != Y_liveout.end()) {
-                    auto tempExp = new TempExp(dataFlowInfo.varTypeMap[a], new Temp(a));
-                    auto phi = new QuadPhi(nullptr, tempExp, new vector<pair<Temp*, Label*>>(), new set<Temp*>(), new set<Temp*>());
+                    auto newTemp = new Temp(a);
+                    auto tempExp = new TempExp(dataFlowInfo.varTypeMap[a], newTemp);
+                    auto phi
+                        = new QuadPhi(nullptr, tempExp, new vector<pair<Temp*, Label*>>(), new set<Temp*> { newTemp }, new set<Temp*>());
                     domInfo->labelToBlock[Y]->quadlist->insert(domInfo->labelToBlock[Y]->quadlist->begin() + 1, phi);
                 }
             }
@@ -65,24 +67,71 @@ static void placePhi(ControlFlowInfo* domInfo)
 }
 
 static map<int, int> Count;
-static map<int, vector<int>> Stack;
+static map<int, vector<Temp*>> Stack;
 
 static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
 {
     QuadBlock* block = domInfo->labelToBlock[n];
 
+    map<int, int> StackTimes;
+
     for (QuadStm* S : *(block->quadlist)) {
-        if (S->kind != QuadKind::PHI) {
+        // 如果不是phi函数, 则替换use
+        if (S->kind != QuadKind::PHI)
             for (Temp* i : *(S->use)) {
-                i->num = Stack[i->num].back();
+                if (!Stack[i->num].empty())
+                    S->renameUse(i, Stack[i->num].back());
+            }
+
+        if (S->kind == QuadKind::PHI) {
+            printf("Phi: ");
+        }
+
+        // 替换def
+        for (Temp* i : *(S->def)) {
+            Count[i->num]++;
+            Stack[i->num].push_back(new Temp(Count[i->num]));
+            S->renameDef(i, Stack[i->num].back());
+
+            // 记录压栈次数, 方便弹出
+            if (StackTimes.find(i->num) == StackTimes.end())
+                StackTimes[i->num] = 0;
+            else
+                StackTimes[i->num]++;
+        }
+    }
+
+    // TODO: 修改phi函数
+    for (int Y : domInfo->successors[n]) {
+        auto Y_block = domInfo->labelToBlock[Y];
+        for (QuadStm* S : *(Y_block->quadlist)) {
+            if (S->kind == QuadKind::PHI) {
+                auto phi = static_cast<QuadPhi*>(S);
+                phi->args->push_back(make_pair(Stack[phi->temp->temp->num].back(), domInfo->labelToBlock[n]->entry_label));
+                phi->use->insert(Stack[phi->temp->temp->num].back());
             }
         }
+    }
+
+    // 遍历子块
+    for (int X : domInfo->domTree[n])
+        Rename(dataFlowInfo, domInfo, X);
+
+    // 弹出栈
+    for (auto record : StackTimes) {
+        int i = record.first;
+        int times = record.second;
+        for (int j = 0; j < times; j++)
+            Stack[i].pop_back();
     }
 }
 
 // 重命名变量(确保每个变量仅赋值一次)
 static void renameVariables(ControlFlowInfo* domInfo)
 {
+    domInfo->printSuccessors();
+    domInfo->printDomTree();
+
     // 构造数据流信息
     DataFlowInfo dataFlowInfo(domInfo->func);
     dataFlowInfo.findAllVars();
@@ -91,8 +140,8 @@ static void renameVariables(ControlFlowInfo* domInfo)
     Count.clear();
     Stack.clear();
     for (int a : dataFlowInfo.allVars) {
-        Count[a] = a * 100;
-        Stack[a] = vector<int> { a * 100 };
+        Count[a] = a * 100 - 1;
+        Stack[a] = vector<Temp*> {};
     }
 
     // 深度优先遍历基本块

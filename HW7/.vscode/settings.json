@@ -3,6 +3,8 @@
     "files.associations": {
         "*.dbclient-js": "javascript",
         "ostream": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "variant": "cpp",
+        "new": "cpp"
     }
 }
