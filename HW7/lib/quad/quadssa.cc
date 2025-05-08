@@ -35,25 +35,27 @@ static void placePhi(ControlFlowInfo* domInfo)
     dataFlowInfo.findAllVars();
     dataFlowInfo.computeLiveness();
 
-    // 记录块的Phi函数定义过变量
+    // 记录块中已经定义的Phi函数变量
     map<int, set<int>> A_phi;
     for (int block : domInfo->allBlocks)
         A_phi[block] = set<int>();
 
     // 遍历所有变量
     for (int a : dataFlowInfo.allVars) {
-        // 跳过函数形参
+        // 跳过函数形参 (无定义)
         if (dataFlowInfo.defs->find(a) == dataFlowInfo.defs->end())
             continue;
+
         auto W = dataFlowInfo.defs->at(a);
         while (!W.empty()) {
             quad::QuadBlock* n_block = W.begin()->first;
             quad::QuadStm* n_stm = W.begin()->second;
             W.erase(W.begin());
 
+            // 遍历当前块的所有支配边界
             for (int Y : domInfo->dominanceFrontiers[n_block->entry_label->num]) {
-                // 如果该变量的phi函数未定义
-                // 并且该变量在Y入口标签的liveout里, 则执行
+                // 如果该变量的Phi函数未定义
+                // 并且该变量在Y的入口标签的liveout里
                 auto Y_block = domInfo->labelToBlock[Y];
                 auto Y_entry = Y_block->quadlist->at(0);
                 auto& Y_liveout = dataFlowInfo.liveout->at(Y_entry);
@@ -73,6 +75,7 @@ static void placePhi(ControlFlowInfo* domInfo)
 static map<int, int> Count;
 static map<int, vector<Temp*>> Stack;
 
+// 转换为原始变量号
 static int convertOrigin(int num)
 {
     if (num >= 10000)
@@ -86,7 +89,7 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
     map<int, int> StackTimes;
 
     for (QuadStm* S : *(block->quadlist)) {
-        // 如果不是phi函数, 则替换use
+        // 如果不是Phi函数, 则替换use
         if (S->kind != QuadKind::PHI) {
             for (Temp* i : *S->cloneTemps(S->use)) {
                 if (!Stack[i->num].empty())
@@ -108,7 +111,7 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
         }
     }
 
-    // TODO: 修改phi函数
+    // 遍历后继, 添加Phi函数的参数
     for (int Y : domInfo->successors[n]) {
         auto Y_block = domInfo->labelToBlock[Y];
         for (QuadStm* S : *(Y_block->quadlist)) {
@@ -126,11 +129,11 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
         }
     }
 
-    // 遍历子块
+    // 递归处理子块
     for (int X : domInfo->domTree[n])
         Rename(dataFlowInfo, domInfo, X);
 
-    // 弹出栈
+    // 回溯 弹出栈
     for (auto record : StackTimes) {
         int i = record.first;
         int times = record.second;
@@ -146,7 +149,7 @@ static void renameVariables(ControlFlowInfo* domInfo)
     DataFlowInfo dataFlowInfo(domInfo->func);
     dataFlowInfo.findAllVars();
 
-    // 初始化所有变量的计数和栈
+    // 初始化变量的计数和栈
     Count.clear();
     Stack.clear();
     for (int a : dataFlowInfo.allVars) {
@@ -154,25 +157,16 @@ static void renameVariables(ControlFlowInfo* domInfo)
         Stack[a] = vector<Temp*> {};
     }
 
-    // 深度优先遍历基本块
+    // 递归处理起始块
     Rename(dataFlowInfo, domInfo, domInfo->entryBlock);
-}
-
-// 清理无用的Phi函数
-static void cleanupUnusedPhi(QuadFuncDecl* func)
-{
-    //
 }
 
 QuadProgram* quad2ssa(QuadProgram* program)
 {
     QuadProgram* ssaProgram = new QuadProgram(static_cast<tree::Program*>(program->node), new vector<QuadFuncDecl*>());
-
     for (auto func : *program->quadFuncDeclList) {
-        // 创建控制流信息对象
+        // 计算控制流信息
         ControlFlowInfo* domInfo = new ControlFlowInfo(func);
-
-        // 计算支配关系、前驱后继等控制流信息
         domInfo->computeEverything();
 
         // 删除不可达的基本块
@@ -181,13 +175,10 @@ QuadProgram* quad2ssa(QuadProgram* program)
         // 在支配边界插入Phi函数
         placePhi(domInfo);
 
-        // 重命名变量(确保每个变量仅赋值一次)
+        // 重命名变量
         renameVariables(domInfo);
 
-        // 清理无用的Phi函数
-        cleanupUnusedPhi(func);
-
-        // 将处理后的函数添加到新程序中
+        // 将处理后的函数添加到新程序
         ssaProgram->quadFuncDeclList->push_back(func);
     }
 
