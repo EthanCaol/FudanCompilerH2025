@@ -25,7 +25,7 @@ handin:
 		exit 1; \
 	fi; \
 	filename="22300240008-曹奕伦"; \
-	zip -q -r "docs/$$filename-hw1.zip" \
+	zip -q -r "docs/$$filename-hw6.zip" \
 	  docs/report.pdf include lib
 
 .PHONY: run run-one gentests gentest-one patchdemo 

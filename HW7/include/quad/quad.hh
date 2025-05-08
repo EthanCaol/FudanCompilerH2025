@@ -286,21 +286,25 @@ public:
     void print(string& output_str, int indent, bool print_def_use) override;
     QuadStore* clone() const override;
 
-    void renameDef(Temp* oldTemp, Temp* newTemp) override
-    {
-        renameDefUse(def, oldTemp, newTemp);
-        assert(src->kind == QuadTermKind::TEMP);
-        TempExp* temp = get<TempExp*>(src->term);
-        assert(temp->temp == oldTemp);
-        temp->temp = newTemp;
-    }
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
         renameDefUse(use, oldTemp, newTemp);
-        assert(dst->kind == QuadTermKind::TEMP);
-        TempExp* temp = get<TempExp*>(dst->term);
-        assert(temp->temp == oldTemp);
-        temp->temp = newTemp;
+        if (src->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(src->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        if (dst->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(dst->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
     }
 };
 

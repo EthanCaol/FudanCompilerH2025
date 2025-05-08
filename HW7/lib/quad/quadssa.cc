@@ -42,6 +42,9 @@ static void placePhi(ControlFlowInfo* domInfo)
 
     // 遍历所有变量
     for (int a : dataFlowInfo.allVars) {
+        // 跳过函数形参
+        if (dataFlowInfo.defs->find(a) == dataFlowInfo.defs->end())
+            continue;
         auto W = dataFlowInfo.defs->at(a);
         while (!W.empty()) {
             quad::QuadBlock* n_block = W.begin()->first;
@@ -70,11 +73,16 @@ static void placePhi(ControlFlowInfo* domInfo)
 static map<int, int> Count;
 static map<int, vector<Temp*>> Stack;
 
+static int convertOrigin(int num)
+{
+    if (num >= 10000)
+        return num / 100;
+    return num;
+}
+
 static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
 {
-    cout << "Rename: " << n << endl;
     QuadBlock* block = domInfo->labelToBlock[n];
-
     map<int, int> StackTimes;
 
     for (QuadStm* S : *(block->quadlist)) {
@@ -84,10 +92,6 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
                 if (!Stack[i->num].empty())
                     S->renameUse(i, Stack[i->num].back());
             }
-        }
-
-        if (S->kind == QuadKind::PHI) {
-            printf(" ");
         }
 
         // 替换def
@@ -110,12 +114,13 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
         for (QuadStm* S : *(Y_block->quadlist)) {
             if (S->kind == QuadKind::PHI) {
                 auto phi = static_cast<QuadPhi*>(S);
-                if (!Stack[phi->temp->temp->num].empty()) {
-                    phi->args->push_back(make_pair(Stack[phi->temp->temp->num].back(), domInfo->labelToBlock[n]->entry_label));
-                    phi->use->insert(Stack[phi->temp->temp->num].back());
+                auto num = convertOrigin(phi->temp->temp->num);
+                if (!Stack[num].empty()) {
+                    phi->args->push_back(make_pair(Stack[num].back(), domInfo->labelToBlock[n]->entry_label));
+                    phi->use->insert(Stack[num].back());
                 } else {
-                    phi->args->push_back(make_pair(new Temp(phi->temp->temp->num), domInfo->labelToBlock[n]->entry_label));
-                    phi->use->insert(new Temp(phi->temp->temp->num));
+                    phi->args->push_back(make_pair(new Temp(num), domInfo->labelToBlock[n]->entry_label));
+                    phi->use->insert(new Temp(num));
                 }
             }
         }
@@ -137,9 +142,6 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
 // 重命名变量(确保每个变量仅赋值一次)
 static void renameVariables(ControlFlowInfo* domInfo)
 {
-    domInfo->printSuccessors();
-    domInfo->printDomTree();
-
     // 构造数据流信息
     DataFlowInfo dataFlowInfo(domInfo->func);
     dataFlowInfo.findAllVars();
