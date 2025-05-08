@@ -5,6 +5,8 @@
         "ostream": "cpp",
         "ratio": "cpp",
         "variant": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "array": "cpp",
+        "string_view": "cpp"
     }
 }

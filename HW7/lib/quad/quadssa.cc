@@ -109,8 +109,13 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
         for (QuadStm* S : *(Y_block->quadlist)) {
             if (S->kind == QuadKind::PHI) {
                 auto phi = static_cast<QuadPhi*>(S);
-                phi->args->push_back(make_pair(Stack[phi->temp->temp->num].back(), domInfo->labelToBlock[n]->entry_label));
-                phi->use->insert(Stack[phi->temp->temp->num].back());
+                if (!Stack[phi->temp->temp->num].empty()) {
+                    phi->args->push_back(make_pair(Stack[phi->temp->temp->num].back(), domInfo->labelToBlock[n]->entry_label));
+                    phi->use->insert(Stack[phi->temp->temp->num].back());
+                } else {
+                    phi->args->push_back(make_pair(new Temp(phi->temp->temp->num), domInfo->labelToBlock[n]->entry_label));
+                    phi->use->insert(new Temp(phi->temp->temp->num));
+                }
             }
         }
     }
