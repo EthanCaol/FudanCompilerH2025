@@ -60,6 +60,7 @@ static void placePhi(ControlFlowInfo* domInfo)
                     auto phi
                         = new QuadPhi(nullptr, tempExp, new vector<pair<Temp*, Label*>>(), new set<Temp*> { newTemp }, new set<Temp*>());
                     domInfo->labelToBlock[Y]->quadlist->insert(domInfo->labelToBlock[Y]->quadlist->begin() + 1, phi);
+                    A_phi[Y].insert(a);
                 }
             }
         }
@@ -77,18 +78,19 @@ static void Rename(DataFlowInfo& dataFlowInfo, ControlFlowInfo* domInfo, int n)
 
     for (QuadStm* S : *(block->quadlist)) {
         // 如果不是phi函数, 则替换use
-        if (S->kind != QuadKind::PHI)
-            for (Temp* i : *(S->use)) {
+        if (S->kind != QuadKind::PHI) {
+            for (Temp* i : *S->cloneTemps(S->use)) {
                 if (!Stack[i->num].empty())
                     S->renameUse(i, Stack[i->num].back());
             }
+        }
 
         if (S->kind == QuadKind::PHI) {
             printf("Phi: ");
         }
 
         // 替换def
-        for (Temp* i : *(S->def)) {
+        for (Temp* i : *S->cloneTemps(S->def)) {
             Count[i->num]++;
             Stack[i->num].push_back(new Temp(Count[i->num]));
             S->renameDef(i, Stack[i->num].back());
