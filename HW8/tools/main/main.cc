@@ -28,10 +28,10 @@ int main(int argc, const char* argv[])
     string file;
     file = argv[argc - 1];
     // string dir = "input_example/";
-    // file = dir + "hw8test04";
+    // file = dir + "hw8test12";
 
     // 寄存器数量
-    int number_of_colors = 9; // default 9: r0-r8
+    int number_of_colors = 5; // default 9: r0-r8
     cout << "颜色数: " << number_of_colors << endl;
 
     string file_quad_ssa_xml = file + ".4-ssa-xml.quad";

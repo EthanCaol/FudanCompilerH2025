@@ -68,9 +68,9 @@ bool Coloring::coalesce()
             swap(dst, src);
 
         // 移除该移动对 (双向)
-        movePairs.erase(movePairs.begin());
+        movePairs.erase(it);
         for (auto it = movePairs.begin(); it != movePairs.end(); it++) {
-            if (it->first == src && it->second == src) {
+            if (it->first == src && it->second == dst) {
                 movePairs.erase(it);
                 break;
             }
@@ -119,7 +119,7 @@ bool Coloring::freeze()
         int src = movePairs.begin()->second;
         movePairs.erase(movePairs.begin());
         for (auto it = movePairs.begin(); it != movePairs.end(); it++) {
-            if (it->first == src && it->second == src) {
+            if (it->first == src && it->second == dst) {
                 movePairs.erase(it);
                 break;
             }
