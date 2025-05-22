@@ -28,11 +28,10 @@ int main(int argc, const char* argv[])
     string file;
     file = argv[argc - 1];
     string dir = "input_example/";
-    file = dir + "hw8test10";
+    file = dir + "hw8test06";
 
     // 寄存器数量
-    int number_of_colors = 9; // default 9: r0-r8
-    // number_of_colors = 5; // 5: r0-r4
+    int number_of_colors = 5; // default 9: r0-r8
     cout << "颜色数: " << number_of_colors << endl;
 
     string file_quad_ssa_xml = file + ".4-ssa-xml.quad";
@@ -55,8 +54,7 @@ int main(int argc, const char* argv[])
     quad2file(x4, file_quad_prepared.c_str(), true);
 
     cout << "着色: " << file_quad_color_xml << endl;
-    bool print_ig = true;
-    XMLDocument* x5 = coloring(x4, number_of_colors, print_ig);
+    XMLDocument* x5 = coloring(x4, number_of_colors, true);
     x5->SaveFile(file_quad_color_xml.c_str());
     cout << "-----Done---" << endl;
     return EXIT_SUCCESS;

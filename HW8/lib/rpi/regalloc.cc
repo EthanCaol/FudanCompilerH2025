@@ -24,7 +24,7 @@ Coloring* coloring(QuadFuncDecl* func, int k, bool output_ig)
         cout << "Interference graph for function: " << func->funcname << endl;
         cout << ig->printGraph(); // Print the graph
     }
-    return coloring(ig, k); // color the graph
+    return coloring(ig, k); // 图着色
 }
 
 XMLDocument* coloring(QuadProgram* prog, int k, bool output_ig)

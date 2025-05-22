@@ -39,6 +39,7 @@ static void addMovePair(set<pair<int, int>>& movePairs, int src, int dst)
     }
 }
 
+// 构造干扰图
 InterferenceGraph* buildIg(QuadFuncDecl* funcdecl)
 {
     map<int, set<int>> graph = map<int, set<int>>();       // Adjacency list representation of the interference graph
