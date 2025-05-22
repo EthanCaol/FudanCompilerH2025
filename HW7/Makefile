@@ -51,11 +51,3 @@ run: $(MAIN)
 	$(call run_test,HW3)
 	$(call run_test,HW4)
 	$(call run_test,Other)
-
-FILE=test1
-
-run-one: $(MAIN)
-	cd $(CURDIR)/test && \
-	echo "Reading ${FILE}.3.irp"; \
-	$(MAIN) "${FILE}"; \
-	cd .. > /dev/null 2>&1 

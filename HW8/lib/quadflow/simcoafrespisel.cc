@@ -24,10 +24,8 @@ bool isAnEdge(map<int, set<int>>& graph, int src, int dst)
 // 返回true, 如果出现结点被简化
 bool Coloring::simplify()
 {
-    // 拷贝工作图用于迭代
-    map<int, set<int>> originGraph = graph;
     // 遍历工作图, 寻找邻居数小于k的结点, 并且未被保护
-    for (auto it = originGraph.begin(); it != originGraph.end(); it++) {
+    for (auto it = graph.begin(); it != graph.end(); it++) {
         int node = it->first;
         if (getNeighbors(node).size() < k && !isMove(node)) {
             simplifiedNodes.push(node);
@@ -42,14 +40,30 @@ bool Coloring::simplify()
 // 返回true. 如果出现结点被合并
 bool Coloring::coalesce()
 {
-    if (!movePairs.empty()) {
-        int dst = movePairs.begin()->first; // 默认为机器寄存器
-        int src = movePairs.begin()->second;
+    for (auto it = movePairs.begin(); it != movePairs.end(); it++) {
+        int dst = it->first; // 默认为机器寄存器
+        int src = it->second;
 
         // 如果互相干扰, 则不合并
         if (isAnEdge(graph, src, dst))
             return false;
 
+        // Briggs策略
+        // 合并后新节点的高度数邻居(degree ≥ k)数量 < k
+        auto dst_neighbors = getNeighbors(dst);
+        auto src_neighbors = getNeighbors(src);
+        set<int> union_neighbors;
+        union_neighbors.insert(dst_neighbors.begin(), dst_neighbors.end());
+        union_neighbors.insert(src_neighbors.begin(), src_neighbors.end());
+
+        int high_num = 0;
+        for (auto it = union_neighbors.begin(); it != union_neighbors.end(); it++)
+            if (getNeighbors(*it).size() >= k)
+                high_num++;
+        if (high_num >= k)
+            continue;
+
+        // 使得dst为机器寄存器
         if (isMachineReg(src))
             swap(dst, src);
 
@@ -62,9 +76,7 @@ bool Coloring::coalesce()
             }
         }
 
-        cout << "合并: " << src << " -> " << dst << endl;
-        auto dst_neighbors = getNeighbors(dst);
-        auto src_neighbors = getNeighbors(src);
+        // cout << "合并: " << src << " -> " << dst << endl;
 
         // 移除src结点
         eraseNode(src);
@@ -169,7 +181,7 @@ bool Coloring::select()
         if (isMachineReg(node))
             continue;
 
-        cout << "选择: " << node << endl;
+        // cout << "选择: " << node << endl;
 
         set<int> neighbors = getNeighbors(node);
         for (auto it = coalescedMoves[node].begin(); it != coalescedMoves[node].end(); it++) {
@@ -200,8 +212,13 @@ bool Coloring::select()
             }
 
         // 如果无可用颜色, 则将该结点标记为溢出结点
-        if (colors.find(node) == colors.end())
+        if (colors.find(node) == colors.end()) {
             spilled.insert(node);
+            if (coalescedMoves.find(node) != coalescedMoves.end()) {
+                auto coalesced_nodes = coalescedMoves[node];
+                spilled.insert(coalesced_nodes.begin(), coalesced_nodes.end());
+            }
+        }
     }
 
     return checkColoring();

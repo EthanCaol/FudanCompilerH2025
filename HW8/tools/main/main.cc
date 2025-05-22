@@ -20,18 +20,18 @@ using namespace tinyxml2;
 int main(int argc, const char* argv[])
 {
     // 切换到test目录
-    filesystem::path filePath(__FILE__);
-    filesystem::path directory = filePath.parent_path();
-    chdir(directory.c_str());
-    chdir("../../test");
+    // filesystem::path filePath(__FILE__);
+    // filesystem::path directory = filePath.parent_path();
+    // chdir(directory.c_str());
+    // chdir("../../test");
 
     string file;
     file = argv[argc - 1];
-    string dir = "input_example/";
-    file = dir + "hw8test06";
+    // string dir = "input_example/";
+    // file = dir + "hw8test04";
 
     // 寄存器数量
-    int number_of_colors = 5; // default 9: r0-r8
+    int number_of_colors = 9; // default 9: r0-r8
     cout << "颜色数: " << number_of_colors << endl;
 
     string file_quad_ssa_xml = file + ".4-ssa-xml.quad";
@@ -54,7 +54,7 @@ int main(int argc, const char* argv[])
     quad2file(x4, file_quad_prepared.c_str(), true);
 
     cout << "着色: " << file_quad_color_xml << endl;
-    XMLDocument* x5 = coloring(x4, number_of_colors, true);
+    XMLDocument* x5 = coloring(x4, number_of_colors, false);
     x5->SaveFile(file_quad_color_xml.c_str());
     cout << "-----Done---" << endl;
     return EXIT_SUCCESS;
