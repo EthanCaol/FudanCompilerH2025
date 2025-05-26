@@ -257,7 +257,7 @@ string quad2rpi(QuadProgram* quadProgram, ColorMap* cm)
         // 计算数据流信息
         DataFlowInfo* dfi = new DataFlowInfo(func);
         dfi->computeLiveness();
-        // dfi->printLiveness();
+        dfi->printLiveness();
 
         trace(func);
         Color* c = cm->color_map[func->funcname];

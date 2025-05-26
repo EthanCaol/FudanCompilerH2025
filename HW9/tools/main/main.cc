@@ -27,7 +27,7 @@ int main(int argc, const char* argv[])
 
     string file;
     file = argv[argc - 1];
-    file = "hw8test05";
+    file = "hw8test00";
 
     string color_dir = "k5/";
     string file_quad_prepared_xml = file + ".4-prepared-xml.quad";
@@ -45,7 +45,7 @@ int main(int argc, const char* argv[])
 
     cout << "读取colors: " << file_quad_color_xml << endl;
     ColorMap* colormap = xml2colormap(file_quad_color_xml);
-    // colormap->print();
+    colormap->print();
 
     cout << "保存Rpi: " << file_rpi << endl;
     quad2rpi(x3, colormap, file_rpi);
