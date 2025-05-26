@@ -226,8 +226,8 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
                     result += string(indent, ' ') + "mul ";
 
                 result += "r" + to_string(dstReg) + ", ";
-                result += term2str(moveBinopStm->left, color) + ", ";
-                result += term2str(moveBinopStm->right, color) + "\n";
+                result += term2str(moveBinopStm->left, color, true) + ", ";
+                result += term2str(moveBinopStm->right, color, false) + "\n";
 
                 // 溢出变量入栈
                 result += storeDstReg(dstTempNum, color, indent);
@@ -264,8 +264,8 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
                 result += loadSrcReg(storeStm->dst, color, indent, false);
 
                 result += string(indent, ' ') + "str ";
-                result += term2str(storeStm->src, color) + ", [";
-                result += term2str(storeStm->dst, color) + "]\n";
+                result += term2str(storeStm->src, color, true) + ", [";
+                result += term2str(storeStm->dst, color, false) + "]\n";
             }
 
             // Call: obj_term
@@ -310,6 +310,10 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
             else if (stm->kind == QuadKind::CJUMP) {
                 auto cJumpStm = static_cast<QuadCJump*>(stm);
                 auto relop = cJumpStm->relop;
+
+                // 溢出变量出栈
+                result += loadSrcReg(cJumpStm->left, color, indent, true);
+                result += loadSrcReg(cJumpStm->right, color, indent, false);
 
                 result += string(indent, ' ') + "cmp ";
                 result += term2str(cJumpStm->left, color) + ", ";
