@@ -92,6 +92,6 @@ public:
     string printLiveness();
 };
 
-set<DataFlowInfo*>* dataFLowProg(quad::QuadProgram* prog);
+map<string, DataFlowInfo*>* dataFlowProg(quad::QuadProgram* prog);
 
 #endif

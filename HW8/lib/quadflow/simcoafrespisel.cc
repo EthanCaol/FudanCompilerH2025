@@ -193,8 +193,6 @@ bool Coloring::select()
 
         // 如果邻居结点已着色, 则将其颜色加入已使用颜色集合
         for (auto it = neighbors.begin(); it != neighbors.end(); it++) {
-            if (isMachineReg(*it))
-                colors[*it] = *it;
             if (colors.find(*it) != colors.end())
                 usedColors.insert(colors[*it]);
         }
