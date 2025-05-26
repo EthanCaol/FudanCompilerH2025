@@ -175,8 +175,8 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
                         && loadNext->src->get_temp()->temp->num == dstTempNum && nextLiveout
                         && nextLiveout->find(dstTempNum) == nextLiveout->end()) {
                         // LoadBinop: dst [left, right]
-                        // 入栈: left (right是常数)
-                        // 出栈: dst
+                        // 出栈: left (right是常数)
+                        // 入栈: dst
 
                         // 将Load的结果 作为新的dst
                         dstTempNum = loadNext->dst->temp->num;
@@ -208,7 +208,7 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
 
                         result += string(indent, ' ') + "str ";
                         result += term2str(storeNext->src, color, true) + ", [";
-                        result += term2str(left, color, false) + ", " + term2str(right, color, false) + "]\n";
+                        result += term2str(left, color, false) + ", " + term2str(right, color) + "]\n";
                         stmIt++;
                         continue;
                     }
@@ -316,8 +316,8 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
                 result += loadSrcReg(cJumpStm->right, color, indent, false);
 
                 result += string(indent, ' ') + "cmp ";
-                result += term2str(cJumpStm->left, color) + ", ";
-                result += term2str(cJumpStm->right, color) + "\n";
+                result += term2str(cJumpStm->left, color, true) + ", ";
+                result += term2str(cJumpStm->right, color, false) + "\n";
                 result += string(indent, ' ');
 
                 if (relop == "==")
@@ -360,7 +360,7 @@ string quad2rpi(QuadProgram* quadProgram, ColorMap* cm)
         // 计算数据流信息
         DataFlowInfo* dfi = new DataFlowInfo(func);
         dfi->computeLiveness();
-        dfi->printLiveness();
+        // dfi->printLiveness();
 
         trace(func);
         Color* c = cm->color_map[func->funcname];

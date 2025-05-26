@@ -20,17 +20,17 @@ using namespace tinyxml2;
 int main(int argc, const char* argv[])
 {
     // 切换到test目录
-    filesystem::path filePath(__FILE__);
-    filesystem::path directory = filePath.parent_path();
-    chdir(directory.c_str());
-    chdir("../../test/input_example");
+    // filesystem::path filePath(__FILE__);
+    // filesystem::path directory = filePath.parent_path();
+    // chdir(directory.c_str());
+    // chdir("../../test/input_example");
 
     string file;
     file = argv[argc - 1];
     // file = "hw8test08";
-    file = "bubblesort";
+    // file = "bubblesort";
 
-    string color_dir = "k5/";
+    string color_dir = "k5/"; // 选择着色数
     string file_quad_prepared_xml = file + ".4-prepared-xml.quad";
     string file_quad_ssa = file + ".4-prepared.txt";
     string file_quad_color_xml = color_dir + file + ".4-xml.clr";
@@ -46,7 +46,7 @@ int main(int argc, const char* argv[])
 
     cout << "读取colors: " << file_quad_color_xml << endl;
     ColorMap* colormap = xml2colormap(file_quad_color_xml);
-    colormap->print();
+    // colormap->print();
 
     cout << "保存Rpi: " << file_rpi << endl;
     quad2rpi(x3, colormap, file_rpi);
