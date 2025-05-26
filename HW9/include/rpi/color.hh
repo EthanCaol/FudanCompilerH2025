@@ -19,7 +19,7 @@ public:
     string funcname;
     map<int, int> color_map;
     set<int> spills;
-    map<int, int> spill_offset; // spill offset for each spilled temp
+    map<int, int> spill_offset;
 
     Color(string funcname)
         : funcname(funcname)

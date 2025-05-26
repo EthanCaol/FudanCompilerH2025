@@ -28,12 +28,15 @@ string normalizeName(string name)
 
 bool rpi_isMachineReg(int n) { return (n >= 0 && n <= 15); }
 
-string term2str(QuadTerm* term, Color* color)
+string term2str(QuadTerm* term, Color* color, bool isLeft = true)
 {
     string result;
     if (term->kind == QuadTermKind::TEMP) {
         Temp* t = term->get_temp()->temp;
-        result = "r" + to_string(color->color_of(t->num));
+        if (color->is_spill(t->num)) // 如果溢出
+            result = "r" + to_string(isLeft ? 9 : 10);
+        else
+            result = "r" + to_string(color->color_of(t->num));
     }
 
     else if (term->kind == QuadTermKind::CONST) {
@@ -47,12 +50,45 @@ string term2str(QuadTerm* term, Color* color)
     return result;
 }
 
-int current_label = 0; // DEBUG: 调试用
 string label2str(Label* label) { return current_funcname + "$" + label->str(); }
-string convert(QuadLabel* label, Color* c, int indent)
+string convert(QuadLabel* label, Color* c, int indent) { return current_funcname + "$" + label->label->str() + ": \n"; }
+
+// 获取目标寄存器编号
+int getDstReg(int dstTempNum, Color* color)
 {
-    current_label = label->label->num;
-    return current_funcname + "$" + label->label->str() + ": \n";
+    if (color->is_spill(dstTempNum)) return 10; // r10
+    return color->color_of(dstTempNum);
+}
+
+// 存储目标寄存器到栈中 (如果溢出)
+string storeDstReg(int dstTempNum, Color* color, int indent)
+{
+    if (color->is_spill(dstTempNum))
+        return string(indent, ' ') + "str r10, [fp, #" + to_string(-color->spill_offset.at(dstTempNum)) + "]\n";
+    return "";
+}
+
+// 获取源寄存器编号
+int getSrcReg(QuadTerm* srcTerm, Color* color, bool isLeft = true)
+{
+    if (srcTerm->kind == QuadTermKind::TEMP) {
+        auto srcTempNum = srcTerm->get_temp()->temp->num;
+        if (color->is_spill(srcTempNum)) return isLeft ? 9 : 10; // r9 or r10
+        return color->color_of(srcTempNum);
+    }
+    return -1;
+}
+
+// 加载源寄存器从栈中 (如果溢出)
+string loadSrcReg(QuadTerm* srcTerm, Color* color, int indent, bool isLeft = true)
+{
+    if (srcTerm->kind == QuadTermKind::TEMP) {
+        auto srcTempNum = srcTerm->get_temp()->temp->num;
+        if (color->is_spill(srcTempNum))
+            return string(indent, ' ') + "ldr r" + to_string(isLeft ? 9 : 10) + ", [fp, #"
+                + to_string(-color->spill_offset.at(srcTempNum)) + "]\n";
+    }
+    return "";
 }
 
 // TODO: 遍历函数中的四元式, 逐条语句进行转换
@@ -75,7 +111,8 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
     result += string(indent, ' ') + "push {r4-r10, fp, lr}\n";
     result += string(indent, ' ') + "add fp, sp, #32\n";
 
-    if (color->spills.size() > 0) result += string(indent, ' ') + "sub sp, sp, #" + to_string(color->spills.size() * 4) + "\n";
+    if (color->spills.size() > 0)
+        result += string(indent, ' ') + "sub sp, sp, #" + to_string(color->spills.size() * 4) + "\n";
 
     // 处理每个基本块
     for (auto bk : *func->quadblocklist) {
@@ -85,71 +122,105 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
         for (auto stmIt = ql->begin(); stmIt != ql->end(); stmIt++) {
             QuadStm* stm = *stmIt;
             QuadStm* stmNext = (stmIt + 1 != ql->end()) ? *(stmIt + 1) : nullptr;
-            QuadLabel* labelNext = (stmNext && stmNext->kind == QuadKind::LABEL) ? static_cast<QuadLabel*>(stmNext) : nullptr;
-            QuadLoad* loadNext = (stmNext && stmNext->kind == QuadKind::LOAD) ? static_cast<QuadLoad*>(stmNext) : nullptr;
-            QuadStore* storeNext = (stmNext && stmNext->kind == QuadKind::STORE) ? static_cast<QuadStore*>(stmNext) : nullptr;
+            auto nextLiveout = stmNext ? &dfi->liveout->at(stmNext) : nullptr;
+
+            QuadLabel* labelNext
+                = (stmNext && stmNext->kind == QuadKind::LABEL) ? static_cast<QuadLabel*>(stmNext) : nullptr;
+            QuadLoad* loadNext
+                = (stmNext && stmNext->kind == QuadKind::LOAD) ? static_cast<QuadLoad*>(stmNext) : nullptr;
+            QuadStore* storeNext
+                = (stmNext && stmNext->kind == QuadKind::STORE) ? static_cast<QuadStore*>(stmNext) : nullptr;
 
             // Label
             if (stm->kind == QuadKind::LABEL) result += convert(static_cast<QuadLabel*>(stm), color, indent);
 
             // Move: dst src
+            // 出栈: src
+            // 入栈: dst
             else if (stm->kind == QuadKind::MOVE) {
                 auto moveStm = static_cast<QuadMove*>(stm);
-                auto dstReg = color->color_of(moveStm->dst->temp->num);
+                auto dstTempNum = moveStm->dst->temp->num;
+                auto dstReg = getDstReg(dstTempNum, color);
+                auto srcReg = getSrcReg(moveStm->src, color);
 
-                // 跳过同寄存器的移动
-                if (moveStm->src->kind == QuadTermKind::TEMP) {
-                    auto srcReg = color->color_of(moveStm->src->get_temp()->temp->num);
-                    if (dstReg == srcReg) continue;
-                }
+                // 跳过移动相同寄存器
+                if (dstReg == srcReg) continue;
+
+                // 溢出变量出栈
+                result += loadSrcReg(moveStm->src, color, indent, true);
 
                 result += string(indent, ' ') + "mov ";
                 result += "r" + to_string(dstReg) + ", ";
                 result += term2str(moveStm->src, color) + "\n";
+
+                // 溢出变量入栈
+                result += storeDstReg(dstTempNum, color, indent);
             }
 
             // MoveBinop: dst left binop right
+            // 出栈: left, right
+            // 入栈: dst
             else if (stm->kind == QuadKind::MOVE_BINOP) {
                 auto moveBinopStm = static_cast<QuadMoveBinop*>(stm);
-                auto dstReg = color->color_of(moveBinopStm->dst->temp->num);
+                auto dstTempNum = moveBinopStm->dst->temp->num;
+                auto dstReg = getDstReg(dstTempNum, color);
                 auto left = moveBinopStm->left;
                 auto right = moveBinopStm->right;
                 auto binop = moveBinopStm->binop;
 
-                if (binop == "+") {
-                    // 如果右操作数是常数, 则可以尝试合并
-                    if (right->kind == QuadTermKind::CONST) {
-                        // 加法结果 只会 用于下一条加载指令, 则可以合并
-                        if (loadNext && loadNext->src->kind == QuadTermKind::TEMP
-                            && loadNext->src->get_temp()->temp->num == moveBinopStm->dst->temp->num) {
-                            // 确保仅仅用于下一条指令
-                            set<int>& nextLiveout = dfi->liveout->at(stmNext);
-                            if (nextLiveout.find(moveBinopStm->dst->temp->num) == nextLiveout.end()) {
-                                result += string(indent, ' ') + "ldr ";
-                                result += "r" + to_string(color->color_of(loadNext->dst->temp->num)) + ", ";
-                                result += "[" + term2str(left, color) + ", " + term2str(right, color) + "]\n";
-                                stmIt++;
-                                continue;
-                            }
-                        }
+                // 如果加法的右操作数是常数, 则可以尝试合并
+                if (binop == "+" && right->kind == QuadTermKind::CONST) {
+                    // LoadBinop: 如果加法结果 仅仅只会 用于下一条加载指令
+                    if (loadNext && loadNext->src->kind == QuadTermKind::TEMP
+                        && loadNext->src->get_temp()->temp->num == dstTempNum && nextLiveout
+                        && nextLiveout->find(dstTempNum) == nextLiveout->end()) {
+                        // LoadBinop: dst [left, right]
+                        // 入栈: left (right是常数)
+                        // 出栈: dst
 
-                        // 加法结果 只会 用于下一条存储指令, 则可以合并
-                        if (storeNext && storeNext->dst->kind == QuadTermKind::TEMP
-                            && storeNext->dst->get_temp()->temp->num == moveBinopStm->dst->temp->num) {
-                            // 确保仅仅用于下一条指令
-                            set<int>& nextLiveout = dfi->liveout->at(stmNext);
-                            if (nextLiveout.find(moveBinopStm->dst->temp->num) == nextLiveout.end()) {
-                                result += string(indent, ' ') + "str ";
-                                result += term2str(storeNext->src, color) + ", [";
-                                result += term2str(left, color) + ", " + term2str(right, color) + "]\n";
-                                stmIt++;
-                                continue;
-                            }
-                        }
+                        // 将Load的结果 作为新的dst
+                        dstTempNum = loadNext->dst->temp->num;
+                        dstReg = getDstReg(dstTempNum, color);
+
+                        // 溢出变量出栈
+                        result += loadSrcReg(left, color, indent);
+
+                        result += string(indent, ' ') + "ldr ";
+                        result += "r" + to_string(dstReg) + ", ";
+                        result += "[" + term2str(left, color) + ", " + term2str(right, color) + "]\n";
+
+                        // 溢出变量入栈
+                        result += storeDstReg(dstTempNum, color, indent);
+                        stmIt++;
+                        continue;
                     }
 
+                    // StoreBinop: 如果加法结果 仅仅只会 用于下一条存储指令
+                    if (storeNext && storeNext->dst->kind == QuadTermKind::TEMP
+                        && storeNext->dst->get_temp()->temp->num == dstTempNum && nextLiveout
+                        && nextLiveout->find(dstTempNum) == nextLiveout->end()) {
+                        // StoreBinop: src [left, right]
+                        // 出栈: src, left (right是常数)
+
+                        // 溢出变量出栈
+                        result += loadSrcReg(storeNext->src, color, indent);
+                        result += loadSrcReg(left, color, indent, false);
+
+                        result += string(indent, ' ') + "str ";
+                        result += term2str(storeNext->src, color, true) + ", [";
+                        result += term2str(left, color, false) + ", " + term2str(right, color, false) + "]\n";
+                        stmIt++;
+                        continue;
+                    }
+                }
+
+                // 溢出变量出栈
+                result += loadSrcReg(left, color, indent, true);
+                result += loadSrcReg(right, color, indent, false);
+
+                if (binop == "+")
                     result += string(indent, ' ') + "add ";
-                } else if (binop == "-")
+                else if (binop == "-")
                     result += string(indent, ' ') + "sub ";
                 else if (binop == "*")
                     result += string(indent, ' ') + "mul ";
@@ -157,36 +228,61 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
                 result += "r" + to_string(dstReg) + ", ";
                 result += term2str(moveBinopStm->left, color) + ", ";
                 result += term2str(moveBinopStm->right, color) + "\n";
+
+                // 溢出变量入栈
+                result += storeDstReg(dstTempNum, color, indent);
             }
 
             // Load: dst [src]
+            // 出栈: src
+            // 入栈: dst
             else if (stm->kind == QuadKind::LOAD) {
                 auto loadStm = static_cast<QuadLoad*>(stm);
-                result += string(indent, ' ') + "ldr ";
-                result += "r" + to_string(color->color_of(loadStm->dst->temp->num)) + ", ";
+                auto dstTempNum = loadStm->dst->temp->num;
+                auto dstReg = getDstReg(dstTempNum, color);
+
+                // 溢出变量出栈
+                result += loadSrcReg(loadStm->src, color, indent, true);
+
+                result += string(indent, ' ') + "ldr r" + to_string(dstReg) + ", ";
                 if (loadStm->src->kind == QuadTermKind::TEMP)
                     result += "[" + term2str(loadStm->src, color) + "]\n";
                 else
                     result += term2str(loadStm->src, color) + "\n";
+
+                // 溢出变量入栈
+                result += storeDstReg(dstTempNum, color, indent);
             }
 
-            // Store: [dst] src
+            // Store: src [dst]
+            // 出栈: src, dst
             else if (stm->kind == QuadKind::STORE) {
                 auto storeStm = static_cast<QuadStore*>(stm);
+
+                // 溢出变量出栈
+                result += loadSrcReg(storeStm->src, color, indent, true);
+                result += loadSrcReg(storeStm->dst, color, indent, false);
+
                 result += string(indent, ' ') + "str ";
                 result += term2str(storeStm->src, color) + ", [";
                 result += term2str(storeStm->dst, color) + "]\n";
             }
 
             // Call: obj_term
+            // 出栈: obj_term
             else if (stm->kind == QuadKind::CALL) {
                 auto callStm = static_cast<QuadCall*>(stm);
+                // 溢出变量出栈
+                result += loadSrcReg(callStm->obj_term, color, indent);
                 result += string(indent, ' ') + "blx " + term2str(callStm->obj_term, color) + "\n";
             }
 
             // MoveCall: obj_term
+            // 出栈: obj_term
             else if (stm->kind == QuadKind::MOVE_CALL) {
                 auto moveCallStm = static_cast<QuadMoveCall*>(stm);
+                // 溢出变量出栈
+                result += loadSrcReg(moveCallStm->call->obj_term, color, indent);
                 result += string(indent, ' ') + "blx " + term2str(moveCallStm->call->obj_term, color) + "\n";
             }
 
@@ -210,6 +306,7 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
             }
 
             // CJump: left relop right t f
+            // 出栈: left, right
             else if (stm->kind == QuadKind::CJUMP) {
                 auto cJumpStm = static_cast<QuadCJump*>(stm);
                 auto relop = cJumpStm->relop;
