@@ -75,6 +75,8 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
     result += string(indent, ' ') + "push {r4-r10, fp, lr}\n";
     result += string(indent, ' ') + "add fp, sp, #32\n";
 
+    if (color->spills.size() > 0) result += string(indent, ' ') + "sub sp, sp, #" + to_string(color->spills.size() * 4) + "\n";
+
     // 处理每个基本块
     for (auto bk : *func->quadblocklist) {
         auto ql = bk->quadlist;
@@ -90,7 +92,7 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
             // Label
             if (stm->kind == QuadKind::LABEL) result += convert(static_cast<QuadLabel*>(stm), color, indent);
 
-            // Move
+            // Move: dst src
             else if (stm->kind == QuadKind::MOVE) {
                 auto moveStm = static_cast<QuadMove*>(stm);
                 auto dstReg = color->color_of(moveStm->dst->temp->num);
@@ -106,7 +108,7 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
                 result += term2str(moveStm->src, color) + "\n";
             }
 
-            // MoveBinop
+            // MoveBinop: dst left binop right
             else if (stm->kind == QuadKind::MOVE_BINOP) {
                 auto moveBinopStm = static_cast<QuadMoveBinop*>(stm);
                 auto dstReg = color->color_of(moveBinopStm->dst->temp->num);
@@ -157,7 +159,7 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
                 result += term2str(moveBinopStm->right, color) + "\n";
             }
 
-            // Load
+            // Load: dst [src]
             else if (stm->kind == QuadKind::LOAD) {
                 auto loadStm = static_cast<QuadLoad*>(stm);
                 result += string(indent, ' ') + "ldr ";
@@ -168,7 +170,7 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
                     result += term2str(loadStm->src, color) + "\n";
             }
 
-            // Store
+            // Store: [dst] src
             else if (stm->kind == QuadKind::STORE) {
                 auto storeStm = static_cast<QuadStore*>(stm);
                 result += string(indent, ' ') + "str ";
@@ -176,38 +178,38 @@ string convert(QuadFuncDecl* func, DataFlowInfo* dfi, Color* color, int indent)
                 result += term2str(storeStm->dst, color) + "]\n";
             }
 
-            // Call
+            // Call: obj_term
             else if (stm->kind == QuadKind::CALL) {
                 auto callStm = static_cast<QuadCall*>(stm);
                 result += string(indent, ' ') + "blx " + term2str(callStm->obj_term, color) + "\n";
             }
 
-            // MoveCall
+            // MoveCall: obj_term
             else if (stm->kind == QuadKind::MOVE_CALL) {
                 auto moveCallStm = static_cast<QuadMoveCall*>(stm);
                 result += string(indent, ' ') + "blx " + term2str(moveCallStm->call->obj_term, color) + "\n";
             }
 
-            // ExtCall
+            // ExtCall: extfun
             else if (stm->kind == QuadKind::EXTCALL) {
                 auto extCallStm = static_cast<QuadExtCall*>(stm);
                 result += string(indent, ' ') + "bl " + extCallStm->extfun + "\n";
             }
 
-            // MoveExtCall
+            // MoveExtCall: extfun
             else if (stm->kind == QuadKind::MOVE_EXTCALL) {
                 auto moveExtCallStm = static_cast<QuadMoveExtCall*>(stm);
                 result += string(indent, ' ') + "bl " + moveExtCallStm->extcall->extfun + "\n";
             }
 
-            // Jump
+            // Jump: label
             else if (stm->kind == QuadKind::JUMP) {
                 auto jumpStm = static_cast<QuadJump*>(stm);
                 if (labelNext && labelNext->label->num == jumpStm->label->num) continue; // 相同跳转
                 result += string(indent, ' ') + "b " + label2str(jumpStm->label) + "\n";
             }
 
-            // CJump
+            // CJump: left relop right t f
             else if (stm->kind == QuadKind::CJUMP) {
                 auto cJumpStm = static_cast<QuadCJump*>(stm);
                 auto relop = cJumpStm->relop;

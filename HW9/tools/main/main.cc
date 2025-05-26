@@ -27,7 +27,7 @@ int main(int argc, const char* argv[])
 
     string file;
     file = argv[argc - 1];
-    file = "hw8test00";
+    file = "hw8test08";
 
     string color_dir = "k5/";
     string file_quad_prepared_xml = file + ".4-prepared-xml.quad";
