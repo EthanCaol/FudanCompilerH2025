@@ -27,12 +27,13 @@ int main(int argc, const char* argv[])
 
     string file;
     file = argv[argc - 1];
-    file = "hw8test10";
+    file = "hw8test05";
 
-    string color_dir = "k9/";
+    string color_dir = "k5/";
     string file_quad_prepared_xml = file + ".4-prepared-xml.quad";
+    string file_quad_ssa = file + ".4-prepared.txt";
     string file_quad_color_xml = color_dir + file + ".4-xml.clr";
-    string file_rpi = file + ".s";
+    string file_rpi = file + ".my.s";
 
     cout << "读取quad: " << file_quad_prepared_xml << endl;
     quad::QuadProgram* x3 = xml2quad(file_quad_prepared_xml.c_str());
@@ -40,6 +41,7 @@ int main(int argc, const char* argv[])
         cerr << "Error reading Quad from xml: " << file_quad_prepared_xml << endl;
         return EXIT_FAILURE;
     }
+    quad2file(x3, file_quad_ssa, true);
 
     cout << "读取colors: " << file_quad_color_xml << endl;
     ColorMap* colormap = xml2colormap(file_quad_color_xml);

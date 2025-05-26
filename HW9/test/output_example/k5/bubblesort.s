@@ -242,6 +242,7 @@ b1$bubbleSort$L124:
          cmp r9, r3
          bge b1$bubbleSort$L116
          b b1$bubbleSort$L117
+
 .global malloc
 .global getint
 .global putint
