@@ -26,8 +26,9 @@ int main(int argc, const char* argv[])
 
     string file;
     file = argv[argc - 1];
-    file = "hw10/hw10test01";
+    file = "hw8/hw8test12";
     // file = "bubblesort";
+    // file = "fibonacci";
 
     string file_quad_ssa_xml = file + ".4-ssa-xml.quad";
     string file_quad_ssa = file + ".4-ssa.txt";
