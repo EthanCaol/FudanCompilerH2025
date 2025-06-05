@@ -10,7 +10,7 @@
 #include "quad.hh"
 #include "opt.hh"
 
-// TODO: 计算可执行块和变量
+// 计算可执行块和变量
 void Opt::calculateBT()
 {
 calculateBT:
@@ -231,8 +231,7 @@ calculateBT:
     }
 }
 
-// TODO: 更新代码
-// 改写所有单值的使用
+// 更新代码, 改写所有的单值使用
 void Opt::modifyFunc()
 {
 modifyFunc:
