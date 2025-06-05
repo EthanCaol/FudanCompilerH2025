@@ -26,9 +26,9 @@ int main(int argc, const char* argv[])
     chdir("../../test/input_example");
 
     vector<string> files;
-    files = { "hw10/hw10test00" };
+    // files = { "hw10/hw10test00" };
     // files = {"hw8/hw8test12"};
-    // files = {"bubblesort"};
+    files = {"bubblesort"};
     // files = {"fibonacci"};
 
     // hw10测试文件

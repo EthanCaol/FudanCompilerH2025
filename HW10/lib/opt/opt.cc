@@ -235,6 +235,8 @@ calculateBT:
 void Opt::modifyFunc()
 {
 modifyFunc:
+    Temp_map temp_map(func->last_temp_num + 1, func->last_label_num + 1);
+
     auto& blocks = *func->quadblocklist;
     for (auto blockIt = blocks.begin(); blockIt != blocks.end(); blockIt++) {
         if (!block_executable[(*blockIt)->entry_label->num]) {
@@ -268,11 +270,28 @@ modifyFunc:
 
             // 语句->Phi函数
             // 如果目标变量是单值，则删除该语句
+            // 如果参数有单值, 则在前继块添加变量, 并重命名
             else if (stm->kind == QuadKind::PHI) {
                 auto phi = static_cast<QuadPhi*>(stm);
                 if (getRtValue(phi->temp->temp->num).getType() == ValueType::ONE_VALUE) {
                     stmIt = stmts.erase(stmIt);
                     goto modifyFunc;
+                }
+
+                for (auto& arg : *phi->args) {
+                    auto temp = arg.first;
+                    auto label = arg.second;
+                    auto rtValue = getRtValue(temp->num);
+                    // 单值参数需要在前继块添加变量, 并重命名
+                    if (rtValue.getType() == ValueType::ONE_VALUE) {
+                        auto newTemp = temp_map.newtemp();
+                        int value = rtValue.getIntValue();
+                        auto preBlock = label2block[label->num];
+                        preBlock->quadlist->insert(preBlock->quadlist->end() - 1,
+                            new QuadMove(nullptr, new TempExp(Type::INT, newTemp), new QuadTerm(value),
+                                new set<Temp*> { newTemp }, new set<Temp*> {}));
+                        stm->renameUse(temp, newTemp);
+                    }
                 }
             }
 
@@ -286,6 +305,11 @@ modifyFunc:
             }
         }
     }
+
+
+    // 更新标签和变量计数
+    func->last_label_num = temp_map.next_label - 1;
+    func->last_temp_num = temp_map.next_temp - 1;
 }
 
 QuadFuncDecl* Opt::optFunc()

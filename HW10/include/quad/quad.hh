@@ -757,7 +757,16 @@ public:
         assert(temp->temp == oldTemp);
         temp->temp = newTemp;
     }
-    void renameUse(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override { 
+        renameDefUseSet(use, oldTemp, newTemp);
+        for (auto& arg : *args) {
+            if (arg.first == oldTemp) {
+                arg.first = newTemp;
+                return;
+            }
+        }
+        assert(false);
+     }
     void constantUse(Temp* oldTemp, int value) override { }
 };
 
