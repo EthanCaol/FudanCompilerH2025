@@ -6,6 +6,7 @@
 #include <variant>
 #include <vector>
 #include <map>
+#include <algorithm>
 #include "quad.hh"
 #include "opt.hh"
 
@@ -239,14 +240,36 @@ modifyFunc:
 
     auto& blocks = *func->quadblocklist;
     for (auto blockIt = blocks.begin(); blockIt != blocks.end(); blockIt++) {
-        if (!block_executable[(*blockIt)->entry_label->num]) {
+        auto block = *blockIt;
+
+        // 移除不可达块
+        if (!block_executable[block->entry_label->num]) {
             blockIt = blocks.erase(blockIt);
             goto modifyFunc;
         }
 
-        auto& stmts = *(*blockIt)->quadlist;
+        // 移除出口标签中的不可达块
+        auto& exits = *block->exit_labels;
+        auto new_end = remove_if(
+            exits.begin(), exits.end(), [this](tree::Label* label) { return !block_executable[label->num]; });
+        exits.erase(new_end, exits.end());
+
+        auto& stmts = *block->quadlist;
         for (auto stmIt = stmts.begin(); stmIt != stmts.end(); stmIt++) {
             auto stm = *stmIt;
+
+            if (stm->kind == QuadKind::CJUMP) {
+                auto cjump = static_cast<QuadCJump*>(stm);
+                // 如果存在不可达块, 则把CJump替换为Jump
+                if (!block_executable[cjump->t->num] || !block_executable[cjump->f->num]) {
+                    Label* target_label = cjump->f;
+                    if (block_executable[cjump->t->num])
+                        target_label = cjump->t;
+                    block->quadlist->erase(block->quadlist->end());
+                    block->quadlist->push_back(
+                        new QuadJump(nullptr, target_label, new set<Temp*> {}, new set<Temp*> {}));
+                }
+            }
 
             // 语句->赋值
             // 如果目标变量是单值，则删除该语句
@@ -305,7 +328,6 @@ modifyFunc:
             }
         }
     }
-
 
     // 更新标签和变量计数
     func->last_label_num = temp_map.next_label - 1;
