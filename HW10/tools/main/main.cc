@@ -26,10 +26,9 @@ int main(int argc, const char* argv[])
 
     string file;
     file = argv[argc - 1];
-    file = "hw10test00";
+    file = "hw10/hw10test01";
     // file = "bubblesort";
 
-    // boilerplate output filenames (used throughout the compiler pipeline)
     string file_quad_ssa_xml = file + ".4-ssa-xml.quad";
     string file_quad_ssa = file + ".4-ssa.txt";
     string file_quad_ssa_opt = file + ".4-zopt.txt";
@@ -41,13 +40,11 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    cout << "Writing is back (text) to: " << file_quad_ssa << endl;
     quad2file(x3, file_quad_ssa, true);
-    QuadProgram* x4 = optProg(x3); // using registers to prepare the quad for RPI
-    
-    cout << "Writing the optimized Quad Program to: " << file_quad_ssa_opt << endl;
-    quad2file(x4, file_quad_ssa_opt.c_str(), true); // write the prepared quad to a file
-    
+    QuadProgram* x4 = optProg(x3);
+
+    quad2file(x4, file_quad_ssa_opt.c_str(), true);
+
     cout << "-----Done---" << endl;
     return EXIT_SUCCESS;
 }

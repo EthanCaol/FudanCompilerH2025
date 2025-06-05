@@ -11,50 +11,75 @@ using namespace std;
 using namespace tree;
 using namespace quad;
 
-enum class ValueType { NO_VALUE = 0, ONE_VALUE = 1, MANY_VALUES = 2 };
+enum class ValueType {
+    NO_VALUE = 0,    // 还未确定赋值
+    ONE_VALUE = 1,   // 有单值
+    MANY_VALUES = 2, // 有多值
+};
+
 class RtValue {
     ValueType vt;
-    int value; // the actual value if bct=ONE_VALUE
+    int value; // 变量的单值
+
 public:
-    RtValue()
+    RtValue() // 默认为无值
         : vt(ValueType::NO_VALUE)
-        , value(0) { }; // default value type: no value
+        , value(0) { };
     RtValue(ValueType vt)
         : vt(vt)
-        , value(0) { }; // only for ONE value and MANY values
+        , value(0) { };
     RtValue(int value)
         : vt(ValueType::ONE_VALUE)
-        , value(value) { }; // if int, then one value
+        , value(value) { };
     ValueType getType() { return vt; }
     int getIntValue() { return value; }
+
+    bool operator==(const RtValue& other) const { return vt == other.vt && value == other.value; }
+    bool operator!=(const RtValue& other) const { return !(*this == other); }
 };
 
 class Opt {
 public:
     QuadFuncDecl* func;
-    map<int, bool> block_executable; // int: entry label num, bool: true: executable, false: not executable
-    map<int, RtValue> temp_value;    // int: temp num, true: top (many values), false: bottom (no value), int: value
-    map<int, QuadBlock*> label2block;
+    map<int, bool> block_executable;  // 块可达映射
+    map<int, RtValue> temp_value;     // 变量值映射
+    map<int, QuadBlock*> label2block; // 块标签映射
 
     Opt(quad::QuadFuncDecl* func)
         : func(func) { };
 
-    // for temp, then return the value type of the temp
-    RtValue getRtValue(int temp_num)
+    // true: 值发送变化
+    bool setExecutable(int block_num, bool executable)
     {
-        if (temp_value.find(temp_num) != temp_value.end()) {
-            return temp_value[temp_num];
-        } else {
-            return temp_value[temp_num] = RtValue();
-            // not found, return no value, effectively make all temps to have no value to start with
-        }
+        if (block_executable[block_num] != executable) {
+            block_executable[block_num] = executable;
+            return true;
+        } else
+            return false;
     }
 
-    // this is to calculate (1) the executable blocks and (2) the temp values
-    void calculateBT();
-    // this is to change the temp values to consts (if it is const), and remove instructions and blocks when possible
-    void modifyFunc();
+    // true: 值发送变化
+    bool setRtValue(int temp_num, RtValue rtvalue)
+    {
+        if (temp_value.find(temp_num) == temp_value.end()) temp_value[temp_num] = RtValue();
+        if (temp_value[temp_num] != rtvalue) {
+            temp_value[temp_num] = rtvalue;
+            return true;
+        } else
+            return false;
+    }
 
+    // 获取变量值
+    RtValue getRtValue(int temp_num)
+    {
+        if (temp_value.find(temp_num) != temp_value.end())
+            return temp_value[temp_num];
+        else
+            return temp_value[temp_num] = RtValue();
+    }
+
+    void calculateBT();
+    void modifyFunc();
     QuadFuncDecl* optFunc();
 
     void printRtValue()
@@ -77,9 +102,8 @@ public:
 
     void printBlockExecutable()
     {
-        for (auto& it : block_executable) {
+        for (auto& it : block_executable)
             cout << "block: " << it.first << ", executable: " << it.second << endl;
-        }
     }
 };
 
