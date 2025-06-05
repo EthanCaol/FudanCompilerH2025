@@ -12,7 +12,6 @@
 // TODO: 计算可执行块和变量
 void Opt::calculateBT()
 {
-
 calculateBT:
     for (auto block : *func->quadblocklist) {
         if (!block_executable[block->entry_label->num])
@@ -232,7 +231,54 @@ calculateBT:
 }
 
 // TODO: 更新代码
-void Opt::modifyFunc() { }
+// 改写所有单值的使用
+void Opt::modifyFunc()
+{
+modifyFunc:
+    auto& blocks = *func->quadblocklist;
+    for (auto blockIt = blocks.begin(); blockIt != blocks.end(); blockIt++) {
+        if (!block_executable[(*blockIt)->entry_label->num]) {
+            blockIt = blocks.erase(blockIt);
+            goto modifyFunc;
+        }
+
+        auto& stmts = *(*blockIt)->quadlist;
+        for (auto stmIt = stmts.begin(); stmIt != stmts.end(); stmIt++) {
+            auto stm = *stmIt;
+
+            // 语句->赋值
+            if (stm->kind == QuadKind::MOVE) {
+                auto move = static_cast<QuadMove*>(stm);
+
+                // 如果目标变量是单值，则删除该语句
+                if (getRtValue(move->dst->temp->num).getType() == ValueType::ONE_VALUE) {
+                    stmIt = stmts.erase(stmIt);
+                    goto modifyFunc;
+                }
+            }
+
+            // 语句->二元操作赋值
+            else if (stm->kind == QuadKind::MOVE_BINOP) {
+                auto move_binop = static_cast<QuadMoveBinop*>(stm);
+
+                // 如果目标变量是单值，则删除该语句
+                if (getRtValue(move_binop->dst->temp->num).getType() == ValueType::ONE_VALUE) {
+                    stmIt = stmts.erase(stmIt);
+                    goto modifyFunc;
+                }
+            }
+
+            // 如果有使用的单值变量，则将其替换为常数
+            for (auto useTemp : *stm->use) {
+                auto rtValue = getRtValue(useTemp->num);
+                if (rtValue.getType() == ValueType::ONE_VALUE) {
+                    int value = rtValue.getIntValue();
+                    stm->renameUse(useTemp, new Temp(value));
+                }
+            }
+        }
+    }
+}
 
 QuadFuncDecl* Opt::optFunc()
 {

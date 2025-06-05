@@ -156,7 +156,8 @@ public:
     int last_temp_num;
     int last_label_num;
 
-    QuadFuncDecl(Tree* node, string funcname, vector<Temp*>* params, vector<QuadBlock*>* quadblocklist, int lln, int ltn)
+    QuadFuncDecl(
+        Tree* node, string funcname, vector<Temp*>* params, vector<QuadBlock*>* quadblocklist, int lln, int ltn)
         : Quad(QuadKind::FUNCDECL, node)
         , params(params)
         , quadblocklist(quadblocklist)
@@ -210,36 +211,7 @@ public:
 
     virtual void renameDef(Temp* oldTemp, Temp* newTemp) = 0;
     virtual void renameUse(Temp* oldTemp, Temp* newTemp) = 0;
-};
-
-// 语句->赋值
-// Move: temp <- term
-class QuadMove : public QuadStm {
-public:
-    TempExp* dst;
-    QuadTerm* src;
-    QuadMove(Tree* node, TempExp* dst, QuadTerm* src, set<Temp*>* def, set<Temp*>* use)
-        : QuadStm(QuadKind::MOVE, node, def, use)
-        , dst(dst)
-        , src(src) { };
-    void accept(QuadVisitor& v) { v.visit(this); }
-    void print(string& output_str, int indent, bool print_def_use) override;
-    QuadMove* clone() const override;
-
-    void renameDef(Temp* oldTemp, Temp* newTemp) override
-    {
-        renameDefUse(def, oldTemp, newTemp);
-        assert(dst->temp == oldTemp);
-        dst->temp = newTemp;
-    }
-    void renameUse(Temp* oldTemp, Temp* newTemp) override
-    {
-        renameDefUse(use, oldTemp, newTemp);
-        assert(src->kind == QuadTermKind::TEMP);
-        TempExp* temp = get<TempExp*>(src->term);
-        assert(temp->temp == oldTemp);
-        temp->temp = newTemp;
-    }
+    virtual void constantUse(Temp* oldTemp, int value) = 0;
 };
 
 // 语句->读内存
@@ -308,6 +280,36 @@ public:
     }
 };
 
+// 语句->赋值
+// Move: temp <- term
+class QuadMove : public QuadStm {
+public:
+    TempExp* dst;
+    QuadTerm* src;
+    QuadMove(Tree* node, TempExp* dst, QuadTerm* src, set<Temp*>* def, set<Temp*>* use)
+        : QuadStm(QuadKind::MOVE, node, def, use)
+        , dst(dst)
+        , src(src) { };
+    void accept(QuadVisitor& v) { v.visit(this); }
+    void print(string& output_str, int indent, bool print_def_use) override;
+    QuadMove* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(def, oldTemp, newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        assert(src->kind == QuadTermKind::TEMP);
+        TempExp* temp = get<TempExp*>(src->term);
+        assert(temp->temp == oldTemp);
+        temp->temp = newTemp;
+    }
+};
+
 // 语句->二元操作赋值
 // MoveBinop: temp <- term op term
 class QuadMoveBinop : public QuadStm {
@@ -316,7 +318,8 @@ public:
     QuadTerm* left;
     QuadTerm* right;
     string binop;
-    QuadMoveBinop(Tree* node, TempExp* dst, QuadTerm* left, string binop, QuadTerm* right, set<Temp*>* def, set<Temp*>* use)
+    QuadMoveBinop(
+        Tree* node, TempExp* dst, QuadTerm* left, string binop, QuadTerm* right, set<Temp*>* def, set<Temp*>* use)
         : QuadStm(QuadKind::MOVE_BINOP, node, def, use)
         , dst(dst)
         , left(left)
@@ -544,7 +547,8 @@ public:
     QuadTerm* left;
     QuadTerm* right;
     Label *t, *f;
-    QuadCJump(Tree* node, string relop, QuadTerm* left, QuadTerm* right, Label* t, Label* f, set<Temp*>* def, set<Temp*>* use)
+    QuadCJump(
+        Tree* node, string relop, QuadTerm* left, QuadTerm* right, Label* t, Label* f, set<Temp*>* def, set<Temp*>* use)
         : QuadStm(QuadKind::CJUMP, node, def, use)
         , relop(relop)
         , left(left)
