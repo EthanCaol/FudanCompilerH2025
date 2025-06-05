@@ -188,11 +188,17 @@ public:
 
 // ------------------------------------------------
 
-static void renameDefUse(set<Temp*>* defUse, Temp* oldTemp, Temp* newTemp)
+static void renameDefUseSet(set<Temp*>* defUse, Temp* oldTemp, Temp* newTemp)
 {
     assert(defUse->find(oldTemp) != defUse->end());
     defUse->erase(oldTemp);
     defUse->insert(newTemp);
+}
+
+static void removeUseSet(set<Temp*>* use, Temp* oldTemp)
+{
+    assert(use->find(oldTemp) != use->end());
+    use->erase(oldTemp);
 }
 
 class QuadStm : public Quad {
@@ -230,17 +236,24 @@ public:
 
     void renameDef(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(def, oldTemp, newTemp);
+        renameDefUseSet(def, oldTemp, newTemp);
         assert(dst->temp == oldTemp);
         dst->temp = newTemp;
     }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         assert(src->kind == QuadTermKind::TEMP);
         TempExp* temp = get<TempExp*>(src->term);
         assert(temp->temp == oldTemp);
         temp->temp = newTemp;
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        assert(src->kind == QuadTermKind::TEMP);
+        src = new QuadTerm(value);
     }
 };
 
@@ -261,7 +274,7 @@ public:
     void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         if (src->kind == QuadTermKind::TEMP) {
             TempExp* temp = get<TempExp*>(src->term);
             if (temp->temp == oldTemp) {
@@ -273,6 +286,26 @@ public:
             TempExp* temp = get<TempExp*>(dst->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        if (src->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(src->term);
+            if (temp->temp == oldTemp) {
+                src = new QuadTerm(value);
+                return;
+            }
+        }
+        if (dst->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(dst->term);
+            if (temp->temp == oldTemp) {
+                dst = new QuadTerm(value);
                 return;
             }
         }
@@ -296,17 +329,24 @@ public:
 
     void renameDef(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(def, oldTemp, newTemp);
+        renameDefUseSet(def, oldTemp, newTemp);
         assert(dst->temp == oldTemp);
         dst->temp = newTemp;
     }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         assert(src->kind == QuadTermKind::TEMP);
         TempExp* temp = get<TempExp*>(src->term);
         assert(temp->temp == oldTemp);
         temp->temp = newTemp;
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        assert(src->kind == QuadTermKind::TEMP);
+        src = new QuadTerm(value);
     }
 };
 
@@ -331,13 +371,13 @@ public:
 
     void renameDef(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(def, oldTemp, newTemp);
+        renameDefUseSet(def, oldTemp, newTemp);
         assert(dst->temp == oldTemp);
         dst->temp = newTemp;
     }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         if (left->kind == QuadTermKind::TEMP) {
             TempExp* temp = get<TempExp*>(left->term);
             if (temp->temp == oldTemp) {
@@ -349,6 +389,26 @@ public:
             TempExp* temp = get<TempExp*>(right->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        if (left->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(left->term);
+            if (temp->temp == oldTemp) {
+                left = new QuadTerm(value);
+                return;
+            }
+        }
+        if (right->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(right->term);
+            if (temp->temp == oldTemp) {
+                right = new QuadTerm(value);
                 return;
             }
         }
@@ -376,7 +436,7 @@ public:
     void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         if (obj_term->kind == QuadTermKind::TEMP) {
             TempExp* temp = get<TempExp*>(obj_term->term);
             if (temp->temp == oldTemp) {
@@ -389,6 +449,28 @@ public:
                 TempExp* temp = get<TempExp*>(arg->term);
                 if (temp->temp == oldTemp) {
                     temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+        assert(false);
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        if (obj_term->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(obj_term->term);
+            if (temp->temp == oldTemp) {
+                obj_term = new QuadTerm(value);
+                return;
+            }
+        }
+        for (auto& arg : *args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    arg = new QuadTerm(value);
                     return;
                 }
             }
@@ -413,13 +495,13 @@ public:
 
     void renameDef(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(def, oldTemp, newTemp);
+        renameDefUseSet(def, oldTemp, newTemp);
         assert(dst->temp == oldTemp);
         dst->temp = newTemp;
     }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         if (call->obj_term->kind == QuadTermKind::TEMP) {
             TempExp* temp = get<TempExp*>(call->obj_term->term);
             if (temp->temp == oldTemp) {
@@ -432,6 +514,28 @@ public:
                 TempExp* temp = get<TempExp*>(arg->term);
                 if (temp->temp == oldTemp) {
                     temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+        assert(false);
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        if (call->obj_term->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(call->obj_term->term);
+            if (temp->temp == oldTemp) {
+                call->obj_term = new QuadTerm(value);
+                return;
+            }
+        }
+        for (auto& arg : *call->args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    arg = new QuadTerm(value);
                     return;
                 }
             }
@@ -457,12 +561,27 @@ public:
     void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         for (auto& arg : *args) {
             if (arg->kind == QuadTermKind::TEMP) {
                 TempExp* temp = get<TempExp*>(arg->term);
                 if (temp->temp == oldTemp) {
                     temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+        assert(false);
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        for (auto& arg : *args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    arg = new QuadTerm(value);
                     return;
                 }
             }
@@ -487,18 +606,33 @@ public:
 
     void renameDef(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(def, oldTemp, newTemp);
+        renameDefUseSet(def, oldTemp, newTemp);
         assert(dst->temp == oldTemp);
         dst->temp = newTemp;
     }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         for (auto& arg : *extcall->args) {
             if (arg->kind == QuadTermKind::TEMP) {
                 TempExp* temp = get<TempExp*>(arg->term);
                 if (temp->temp == oldTemp) {
                     temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+        assert(false);
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        for (auto& arg : *extcall->args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    arg = new QuadTerm(value);
                     return;
                 }
             }
@@ -521,6 +655,7 @@ public:
 
     void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
     void renameUse(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void constantUse(Temp* oldTemp, int value) override { assert(false); }
 };
 
 // 语句->跳转
@@ -537,6 +672,7 @@ public:
 
     void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
     void renameUse(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void constantUse(Temp* oldTemp, int value) override { assert(false); }
 };
 
 // 语句->条件跳转
@@ -562,7 +698,7 @@ public:
     void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         if (left->kind == QuadTermKind::TEMP) {
             TempExp* temp = get<TempExp*>(left->term);
             if (temp->temp == oldTemp) {
@@ -574,6 +710,26 @@ public:
             TempExp* temp = get<TempExp*>(right->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        if (left->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(left->term);
+            if (temp->temp == oldTemp) {
+                left = new QuadTerm(value);
+                return;
+            }
+        }
+        if (right->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(right->term);
+            if (temp->temp == oldTemp) {
+                right = new QuadTerm(value);
                 return;
             }
         }
@@ -597,11 +753,12 @@ public:
 
     void renameDef(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(def, oldTemp, newTemp);
+        renameDefUseSet(def, oldTemp, newTemp);
         assert(temp->temp == oldTemp);
         temp->temp = newTemp;
     }
     void renameUse(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void constantUse(Temp* oldTemp, int value) override { }
 };
 
 // 语句->返回语句
@@ -619,11 +776,24 @@ public:
     void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
     void renameUse(Temp* oldTemp, Temp* newTemp) override
     {
-        renameDefUse(use, oldTemp, newTemp);
+        renameDefUseSet(use, oldTemp, newTemp);
         if (value->kind == QuadTermKind::TEMP) {
             TempExp* temp = get<TempExp*>(value->term);
             if (temp->temp == oldTemp) {
                 temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
+    }
+
+    void constantUse(Temp* oldTemp, int value) override
+    {
+        removeUseSet(use, oldTemp);
+        if (this->value->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(this->value->term);
+            if (temp->temp == oldTemp) {
+                this->value = new QuadTerm(value);
                 return;
             }
         }

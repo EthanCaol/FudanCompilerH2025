@@ -247,10 +247,9 @@ modifyFunc:
             auto stm = *stmIt;
 
             // 语句->赋值
+            // 如果目标变量是单值，则删除该语句
             if (stm->kind == QuadKind::MOVE) {
                 auto move = static_cast<QuadMove*>(stm);
-
-                // 如果目标变量是单值，则删除该语句
                 if (getRtValue(move->dst->temp->num).getType() == ValueType::ONE_VALUE) {
                     stmIt = stmts.erase(stmIt);
                     goto modifyFunc;
@@ -258,22 +257,31 @@ modifyFunc:
             }
 
             // 语句->二元操作赋值
+            // 如果目标变量是单值，则删除该语句
             else if (stm->kind == QuadKind::MOVE_BINOP) {
                 auto move_binop = static_cast<QuadMoveBinop*>(stm);
-
-                // 如果目标变量是单值，则删除该语句
                 if (getRtValue(move_binop->dst->temp->num).getType() == ValueType::ONE_VALUE) {
                     stmIt = stmts.erase(stmIt);
                     goto modifyFunc;
                 }
             }
 
+            // 语句->Phi函数
+            // 如果目标变量是单值，则删除该语句
+            else if (stm->kind == QuadKind::PHI) {
+                auto phi = static_cast<QuadPhi*>(stm);
+                if (getRtValue(phi->temp->temp->num).getType() == ValueType::ONE_VALUE) {
+                    stmIt = stmts.erase(stmIt);
+                    goto modifyFunc;
+                }
+            }
+
             // 如果有使用的单值变量，则将其替换为常数
-            for (auto useTemp : *stm->use) {
+            for (auto useTemp : *stm->cloneTemps(stm->use)) {
                 auto rtValue = getRtValue(useTemp->num);
                 if (rtValue.getType() == ValueType::ONE_VALUE) {
                     int value = rtValue.getIntValue();
-                    stm->renameUse(useTemp, new Temp(value));
+                    stm->constantUse(useTemp, value);
                 }
             }
         }
