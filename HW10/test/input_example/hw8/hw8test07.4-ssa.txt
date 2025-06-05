@@ -16,7 +16,7 @@ Function _^main^_^main() last_label=104 last_temp=119:
     LABEL L101; def: use: 
     MOVE_BINOP t11200:INT <- (+, Const:0, Const:1); def: 11200 use: 
     MOVE_BINOP t11300:INT <- (*, t11200:INT, Const:4); def: 11300 use: 11200 
-    MOVE_BINOP t11400:PTR <- (+, t10700:PTR, t11300:INT); def: 11400 use: 10700 11300 
+    MOVE_BINOP t11400:PTR <- (+, t10700:PTR, t11300:INT); def: 11400 use: 11300 10700 
     STORE Const:1 -> Mem(t11400:PTR); def: use: 11400 
     MOVE t10900:PTR <- t10000:PTR; def: 10900 use: 10000 
     LOAD t10400:INT <- Mem(t10000:PTR); def: 10400 use: 10000 

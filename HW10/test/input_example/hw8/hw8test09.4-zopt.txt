@@ -16,7 +16,7 @@ Function _^main^_^main() last_label=100 last_temp=131:
     MOVE_BINOP t12300:PTR <- (+, t10000:PTR, Const:0); def: 12300 use: 10000 
     LOAD t10600:PTR <- Mem(t12300:PTR); def: 10600 use: 12300 
     MOVE_CALL t10700:PTR <- f[t10600:PTR] (t10000:PTR, Const:0); def: 10700 use: 10000 10600 
-    CALL m[t10800:PTR] (t10700:PTR); def: use: 10800 10700 
+    CALL m[t10800:PTR] (t10700:PTR); def: use: 10700 10800 
     MOVE_BINOP t12600:PTR <- (+, t10000:PTR, Const:0); def: 12600 use: 10000 
     LOAD t11000:PTR <- Mem(t12600:PTR); def: 11000 use: 12600 
     MOVE_CALL t11100:PTR <- f[t11000:PTR] (t10000:PTR, Const:1); def: 11100 use: 10000 11000 

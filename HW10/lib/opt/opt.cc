@@ -248,28 +248,9 @@ modifyFunc:
             goto modifyFunc;
         }
 
-        // 移除出口标签中的不可达块
-        auto& exits = *block->exit_labels;
-        auto new_end = remove_if(
-            exits.begin(), exits.end(), [this](tree::Label* label) { return !block_executable[label->num]; });
-        exits.erase(new_end, exits.end());
-
         auto& stmts = *block->quadlist;
         for (auto stmIt = stmts.begin(); stmIt != stmts.end(); stmIt++) {
             auto stm = *stmIt;
-
-            if (stm->kind == QuadKind::CJUMP) {
-                auto cjump = static_cast<QuadCJump*>(stm);
-                // 如果存在不可达块, 则把CJump替换为Jump
-                if (!block_executable[cjump->t->num] || !block_executable[cjump->f->num]) {
-                    Label* target_label = cjump->f;
-                    if (block_executable[cjump->t->num])
-                        target_label = cjump->t;
-                    block->quadlist->erase(block->quadlist->end());
-                    block->quadlist->push_back(
-                        new QuadJump(nullptr, target_label, new set<Temp*> {}, new set<Temp*> {}));
-                }
-            }
 
             // 语句->赋值
             // 如果目标变量是单值，则删除该语句
@@ -324,6 +305,40 @@ modifyFunc:
                 if (rtValue.getType() == ValueType::ONE_VALUE) {
                     int value = rtValue.getIntValue();
                     stm->constantUse(useTemp, value);
+                }
+            }
+
+            // 语句->条件跳转 (在常量替换后进行更新)
+            if (stm->kind == QuadKind::CJUMP) {
+                auto cjump = static_cast<QuadCJump*>(stm);
+                auto left = cjump->left, right = cjump->right;
+                // 如果可以左右都是常量, 则把CJump替换为Jump
+                if (left->kind == QuadTermKind::CONST && right->kind == QuadTermKind::CONST) {
+                    int left_value = get<int>(left->term);
+                    int right_value = get<int>(right->term);
+                    bool result = false;
+                    if (cjump->relop == "==")
+                        result = (left_value == right_value);
+                    else if (cjump->relop == "!=")
+                        result = (left_value != right_value);
+                    else if (cjump->relop == "<")
+                        result = (left_value < right_value);
+                    else if (cjump->relop == "<=")
+                        result = (left_value <= right_value);
+                    else if (cjump->relop == ">")
+                        result = (left_value > right_value);
+                    else if (cjump->relop == ">=")
+                        result = (left_value >= right_value);
+
+                    // 替换为Jump
+                    auto target_label = result ? cjump->t : cjump->f;
+                    stmIt = stmts.erase(stmIt);
+                    stmts.push_back(new QuadJump(nullptr, target_label, new set<Temp*> {}, new set<Temp*> {}));
+
+                    // 更新出口标签
+                    block->exit_labels->clear();
+                    block->exit_labels->push_back(target_label);
+                    goto modifyFunc;
                 }
             }
         }

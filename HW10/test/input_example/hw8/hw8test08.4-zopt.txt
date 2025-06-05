@@ -14,7 +14,7 @@ Function _^main^_^main() last_label=100 last_temp=116:
     MOVE t10001:PTR <- t10100:PTR; def: 10001 use: 10100 
     MOVE_BINOP t11500:PTR <- (+, t10001:PTR, Const:0); def: 11500 use: 10001 
     LOAD t10700:PTR <- Mem(t11500:PTR); def: 10700 use: 11500 
-    CALL m[t10700:PTR] (t10001:PTR); def: use: 10001 10700 
+    CALL m[t10700:PTR] (t10001:PTR); def: use: 10700 10001 
     RETURN Const:0; def: use: 
 Function C^m(t100) last_label=100 last_temp=105:
   Block: Entry Label: L100

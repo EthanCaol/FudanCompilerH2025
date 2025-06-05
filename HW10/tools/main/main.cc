@@ -26,24 +26,24 @@ int main(int argc, const char* argv[])
     chdir("../../test/input_example");
 
     vector<string> files;
-    files = { "hw10/hw10test01" };
-    // files = {"hw8/hw8test12"};
-    // files = {"bubblesort"};
-    // files = {"fibonacci"};
+    // files.push_back("hw10/hw10test01");
+    // files.push_back("hw8/hw8test12");
+    files.push_back("bubblesort");
+    files.push_back("fibonacci");
 
     // hw10测试文件
-    // for (int i = 0; i <= 7; i++) {
-    //     char file_name[100];
-    //     sprintf(file_name, "hw10/hw10test%02d", i);
-    //     files.push_back(string(file_name));
-    // }
+    for (int i = 0; i <= 7; i++) {
+        char file_name[100];
+        sprintf(file_name, "hw10/hw10test%02d", i);
+        files.push_back(string(file_name));
+    }
 
     // hw8测试文件
-    // for (int i = 0; i <= 12; i++) {
-    //     char file_name[100];
-    //     sprintf(file_name, "hw8/hw8test%02d", i);
-    //     files.push_back(string(file_name));
-    // }
+    for (int i = 0; i <= 12; i++) {
+        char file_name[100];
+        sprintf(file_name, "hw8/hw8test%02d", i);
+        files.push_back(string(file_name));
+    }
 
     for (auto file : files) {
         cout << " >" << file << endl;
