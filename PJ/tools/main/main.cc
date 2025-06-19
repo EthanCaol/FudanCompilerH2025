@@ -55,6 +55,7 @@ using namespace std;
 using namespace fdmj;
 using namespace tree;
 using namespace tinyxml2;
+namespace fs = std::filesystem;
 
 #define with_location_info false
 XMLDocument* x;
@@ -81,7 +82,7 @@ void exec(string file)
     string file_quad_prepared = file + ".6-ssa-prepared.my";
     string file_quad_color_xml = file + ".6-ssa-prepared.clr.my";
 
-    string file_rpi = file + ".7-s.my";
+    string file_rpi = file + ".s";
 
     cout << "读取: " << file_fmj << endl;
     ifstream fmjfile(file_fmj);
@@ -144,10 +145,6 @@ void exec(string file)
 
     // ----------------------------------------------------------------
 
-    // TODO: 测试用
-    quad::QuadProgram* tempQuad = xml2quad((file + ".4-prepared-xml.quad").c_str());
-    quad2file(tempQuad, (file + ".6-ssa-prepared").c_str(), true);
-
     cout << "写入: " << file_quad_prepared << endl;
     QuadProgram* x7 = prepareRegAlloc(x5); // TODO: 是否启动 x6
     quad2file(x7, file_quad_prepared.c_str(), true);
@@ -173,22 +170,24 @@ int main(int argc, const char* argv[])
     filesystem::path filePath(__FILE__);
     filesystem::path directory = filePath.parent_path();
     chdir(directory.c_str());
-    // chdir("../../test");
-    chdir("../../test/fmj_normal");
+    chdir("../../test");
 
     vector<string> files;
-    files.push_back("example_mod");
+    files.push_back("hw10test00");
 
-    // files.push_back("hw8test06");
+    // 遍历当前目录下的所有文件
+    // for (const auto& entry : fs::directory_iterator(".")) {
+    //     if (entry.is_regular_file()) {
+    //         const std::string filename = entry.path().filename().string();
 
-    // files.push_back("bubblesort");
-    // files.push_back("fibonacci");
-
-    // // hw8测试文件
-    // for (int i = 0; i <= 12; i++) {
-    //     char file_name[100];
-    //     sprintf(file_name, "hw8test%02d", i);
-    //     files.push_back(string(file_name));
+    //         // 检查是否以 .fmj 结尾
+    //         if (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".fmj") {
+    //             size_t dotPos = filename.find_last_of('.');
+    //             if (dotPos != std::string::npos) {
+    //                 files.push_back(filename.substr(0, dotPos));
+    //             }
+    //         }
+    //     }
     // }
 
     for (auto file : files) {

@@ -19,3 +19,4 @@ sudo apt install -y gcc g++ cmake ninja-build flex bison clang-14 llvm-14 g++-ar
 4. HW10: .4-ssa.quad -> .4-ssa-opt.quad
 5. HW8: .4-ssa.quad -> .4-prepared.quad(.4-xml.clr)
 6. HW9: -> .s
+

@@ -28,7 +28,7 @@ Coloring* coloring(QuadFuncDecl* func, int k, bool output_ig)
 }
 
 XMLDocument* coloring(QuadProgram* prog, int k, bool output_ig)
-{ 
+{
     XMLDocument* doc = new XMLDocument();
     XMLDeclaration* decl = doc->NewDeclaration("xml version=\"1.0\" encoding=\"UTF-8\"");
     doc->InsertFirstChild(decl);

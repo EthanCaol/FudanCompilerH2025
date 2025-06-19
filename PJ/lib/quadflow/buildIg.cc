@@ -85,7 +85,8 @@ InterferenceGraph* buildIg(QuadFuncDecl* funcdecl)
                         cout << "Adding move pair: " << dst_temp->num << " -> " << src_temp->num << endl;
 #endif
                         if (dst_temp->num != src_temp->num
-                            && (!InterferenceGraph::isMachineReg(dst_temp->num) || !InterferenceGraph::isMachineReg(src_temp->num))) {
+                            && (!InterferenceGraph::isMachineReg(dst_temp->num)
+                                || !InterferenceGraph::isMachineReg(src_temp->num))) {
                             // Ignore self-moves, and those that are both machine registers
                             addMovePair(movePairs, dst_temp->num, src_temp->num); // add the move pair
                             // add them to the graph (if not already there)
@@ -112,8 +113,10 @@ InterferenceGraph* buildIg(QuadFuncDecl* funcdecl)
                             cout << "Adding interference edge: " << def->num << " -> " << n << endl;
 #endif
                         } else {
-                            if (src_temp == nullptr || src_temp->num != n) { // now a move, and: if the right of a move is NOT a temp
-                                // or if it's a temp but not the same as the lo, just add interference as usual (else don't)
+                            if (src_temp == nullptr
+                                || src_temp->num != n) { // now a move, and: if the right of a move is NOT a temp
+                                // or if it's a temp but not the same as the lo, just add interference as usual (else
+                                // don't)
                                 addEdge(graph, def->num, n); // add the interference edge
 #ifdef DEBUG
                                 cout << "Adding interference edge: " << def->num << " -> " << n << endl;
@@ -123,7 +126,8 @@ InterferenceGraph* buildIg(QuadFuncDecl* funcdecl)
                     }
                 }
             }
-            // Add a graph node for each use temp (if not already there), in case it's an isolated node (undefined and used once!)
+            // Add a graph node for each use temp (if not already there), in case it's an isolated node (undefined and
+            // used once!)
             if (stmt->use != nullptr) {
                 for (Temp* use : *stmt->use)
                     addNode(graph, use->num); // add the use to the graph with no edges yet
