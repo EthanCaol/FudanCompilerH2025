@@ -30,7 +30,7 @@ Function _^main^_^main() last_label=107 last_temp=137:
     MOVE_BINOP t126:INT <- (+, t106:INT, Const:1); def: 126 use: 106 
     MOVE_BINOP t115:INT <- (*, t126:INT, Const:4); def: 115 use: 126 
     MOVE_EXTCALL t108:PTR <- malloc(t115:INT); def: 108 use: 115 
-    STORE t106:INT -> Mem(t108:PTR); def: use: 108 106 
+    STORE t106:INT -> Mem(t108:PTR); def: use: 106 108 
     MOVE t109:INT <- Const:4; def: 109 use: 
     MOVE_BINOP t127:INT <- (+, t106:INT, Const:1); def: 127 use: 106 
     MOVE_BINOP t110:INT <- (*, t127:INT, Const:4); def: 110 use: 127 

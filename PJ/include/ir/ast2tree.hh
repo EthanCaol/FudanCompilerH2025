@@ -103,7 +103,9 @@ public:
     vector<tree::Tree*> newNodes;       // 下层结点集
     Tr_Exp* newExp = nullptr;           // 下层表达式
 
-    Label *cur_L_while, *cur_L_end; // while语句标签 (用于continue和break语句)
+    // while语句标签 (用于continue和break语句)
+    Label* cur_L_while = nullptr;
+    Label* cur_L_end = nullptr;
 
     tree::TempExp* this_temp = nullptr; // this指针
 

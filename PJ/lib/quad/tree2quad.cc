@@ -105,11 +105,11 @@ void Tree2Quad::visit(ExpStm* node) { node->exp->accept(*this); }
 
 // 语句->标签
 // Label
-void Tree2Quad::visit(LabelStm* node) { visit_results.push_back(new QuadLabel(node, node->label, nullptr, nullptr)); }
+void Tree2Quad::visit(LabelStm* node) { visit_results.push_back(new QuadLabel(node, node->label, new set<Temp*>(), new set<Temp*>())); }
 
 // 语句->跳转
 // Jump
-void Tree2Quad::visit(Jump* node) { visit_results.push_back(new QuadJump(node, node->label, nullptr, nullptr)); }
+void Tree2Quad::visit(Jump* node) { visit_results.push_back(new QuadJump(node, node->label, new set<Temp*>(), new set<Temp*>())); }
 
 // 语句->条件跳转
 // CJump
@@ -137,7 +137,7 @@ void Tree2Quad::visit(tree::Cjump* node)
     }
 
     // 构造条件跳转
-    visit_results.push_back(new QuadCJump(node, node->relop, left, right, node->t, node->f, nullptr, use));
+    visit_results.push_back(new QuadCJump(node, node->relop, left, right, node->t, node->f, new set<Temp*>(), use));
 }
 
 // 类方法调用 辅助函数
@@ -164,7 +164,7 @@ QuadCall* Tree2Quad::call_helper(Call* node)
             use->insert(get<TempExp*>(arg_term->term)->temp);
     }
 
-    return new QuadCall(node, nullptr, node->id, obj_term, args, def, use);
+    return new QuadCall(node, node->id, obj_term, args, def, use);
 }
 
 // 外部函数调用 辅助函数
@@ -185,7 +185,7 @@ QuadExtCall* Tree2Quad::extcall_helper(ExtCall* node)
             use->insert(get<TempExp*>(arg_term->term)->temp);
     }
 
-    return new QuadExtCall(node, nullptr, node->extfun, args, def, use);
+    return new QuadExtCall(node, node->extfun, args, def, use);
 }
 
 // 二元运算 辅助函数
@@ -351,7 +351,7 @@ void Tree2Quad::visit(Return* node)
     }
 
     // 构造返回语句
-    visit_results.push_back(new QuadReturn(node, exp, nullptr, use));
+    visit_results.push_back(new QuadReturn(node, exp, new set<Temp*>(), use));
 }
 
 // ------------------------------------------------

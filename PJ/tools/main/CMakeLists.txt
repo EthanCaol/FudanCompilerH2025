@@ -8,10 +8,11 @@ target_compile_features(${MAIN} PUBLIC cxx_std_17)
 
 # 添加链接库
 target_link_libraries(${MAIN} PUBLIC
-  frontend
-  util
-  ast
-  ir
-  quad
-  vendor_xml
+    ast
+    frontend
+    ir
+    quad
+    quadflow
+    util
+    vendor_xml
 )

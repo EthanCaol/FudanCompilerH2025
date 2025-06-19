@@ -334,12 +334,13 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
                 if (holds_alternative<fdmj::IntExp*>(var_decl->init)) {
                     int val = get<fdmj::IntExp*>(var_decl->init)->val;
 
-                    auto var_mem
-                        = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(offset)));
+                    auto var_mem = new tree::Mem(
+                        tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(offset)));
 
                     auto val_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
                     auto val_move = new tree::Move(val_temp, new tree::Const(val));
-                    auto val_eseq = new tree::Eseq(tree::Type::INT, new tree::Seq(new vector<tree::Stm*> { val_move }), val_temp);
+                    auto val_eseq
+                        = new tree::Eseq(tree::Type::INT, new tree::Seq(new vector<tree::Stm*> { val_move }), val_temp);
                     newNodes.push_back(new tree::Move(var_mem, val_eseq));
                 }
             }
@@ -351,7 +352,8 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
                 auto array_sl = array_decl_helper(var_decl, arr_temp);
                 auto array_init = new tree::Eseq(tree::Type::PTR, new tree::Seq(array_sl), arr_temp);
                 // 然后把数组地址存入成员变量
-                auto var_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(offset)));
+                auto var_mem = new tree::Mem(
+                    tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(offset)));
                 newNodes.push_back(new tree::Move(var_mem, array_init));
             }
         }
@@ -376,7 +378,8 @@ void ASTToTreeVisitor::visit(fdmj::VarDecl* node)
                 par_class_name = name_maps->get_parent(cur_class_name);
             }
 
-            auto method_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(offset)));
+            auto method_mem = new tree::Mem(
+                tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", class_temp, new tree::Const(offset)));
             auto method_nameExp = new Name(temp_map.newstringlabel(method_real_class + "^" + method_name));
             newNodes.push_back(new tree::Move(method_mem, method_nameExp));
         }
@@ -421,7 +424,6 @@ void ASTToTreeVisitor::visit(fdmj::Nested* node)
 
 vector<tree::Stm*>* if_helper(tree::Temp_map& temp_map, Tr_Exp* exp, tree::Stm* stm1, tree::Stm* stm2)
 {
-
     // exp_cx:
     //   True_patch_list: *L1
     //   False_patch_list: *L2
@@ -475,7 +477,7 @@ void ASTToTreeVisitor::visit(fdmj::If* node)
     tree::Stm* stm2 = nullptr;
     if (node->stm2) {
         node->stm2->accept(*this);
-        auto stm2 = static_cast<tree::Stm*>(newNodes[0]);
+        stm2 = static_cast<tree::Stm*>(newNodes[0]);
         newNodes.clear();
     }
 
@@ -484,7 +486,8 @@ void ASTToTreeVisitor::visit(fdmj::If* node)
 }
 
 // 语句->while语句: 辅助函数
-static vector<tree::Stm*>* while_helper(tree::Temp_map& temp_map, Tr_Exp* exp, vector<tree::Stm*>& body)
+static vector<tree::Stm*>* while_helper(
+    tree::Temp_map& temp_map, Tr_Exp* exp, vector<tree::Stm*>& body, Label* L_while, Label* L_true, Label* L_end)
 {
     // exp_cx:
     //   True_patch_list: *L1
@@ -500,10 +503,6 @@ static vector<tree::Stm*>* while_helper(tree::Temp_map& temp_map, Tr_Exp* exp, v
     auto exp_cx = exp->unCx(&temp_map);
     auto L1 = exp_cx->true_list;
     auto L2 = exp_cx->false_list;
-
-    auto L_while = temp_map.newlabel();
-    auto L_true = temp_map.newlabel();
-    auto L_end = temp_map.newlabel();
 
     L1->patch(L_true);
     L2->patch(L_end);
@@ -528,6 +527,13 @@ void ASTToTreeVisitor::visit(fdmj::While* node)
     node->exp->accept(*this);
     auto exp = newExp;
 
+    auto L_while = temp_map.newlabel();
+    auto L_end = temp_map.newlabel();
+
+    // 更新当前所在的while循环
+    cur_L_while = L_while;
+    cur_L_end = L_end;
+
     vector<tree::Stm*> body;
     if (node->stm) {
         node->stm->accept(*this);
@@ -537,7 +543,7 @@ void ASTToTreeVisitor::visit(fdmj::While* node)
         newNodes.clear();
     }
 
-    auto sl = while_helper(temp_map, exp, body);
+    auto sl = while_helper(temp_map, exp, body, L_while, temp_map.newlabel(), L_end);
     newNodes.push_back(new tree::Seq(sl));
 }
 
@@ -570,7 +576,8 @@ tree::Call* ASTToTreeVisitor::call_helper(fdmj::Exp* obj, fdmj::IdExp* name, vec
     }
 
     int offset = class_table->get_method_pos(method_name);
-    auto method_mem = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", objExp, new tree::Const(offset)));
+    auto method_mem
+        = new tree::Mem(tree::Type::PTR, new tree::Binop(tree::Type::PTR, "+", objExp, new tree::Const(offset)));
 
     auto return_f = ast_info->getNameMaps()->get_method_return_formal(class_name, method_name);
     auto return_type = return_f->type->typeKind == TypeKind::INT ? tree::Type::INT : tree::Type::PTR;
@@ -588,11 +595,19 @@ void ASTToTreeVisitor::visit(fdmj::CallStm* node)
 
 // 语句->continue语句: continue;
 // STM: CONTINUE ';'
-void ASTToTreeVisitor::visit(fdmj::Continue* node) { newNodes.push_back(new tree::Jump(cur_L_while)); }
+void ASTToTreeVisitor::visit(fdmj::Continue* node)
+{
+    assert(cur_L_while);
+    newNodes.push_back(new tree::Jump(cur_L_while));
+}
 
 // 语句->break语句: break;
 // STM: BREAK ';'
-void ASTToTreeVisitor::visit(fdmj::Break* node) { newNodes.push_back(new tree::Jump(cur_L_end)); }
+void ASTToTreeVisitor::visit(fdmj::Break* node)
+{
+    assert(cur_L_end);
+    newNodes.push_back(new tree::Jump(cur_L_end));
+}
 
 // 语句->return语句: return 表达式;
 // STM: RETURN EXP ';'
@@ -888,8 +903,8 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
             // 创建暂存数组 int[a.size] t
             auto int_length = Compiler_Config::get("int_length");
             auto t_temp = new tree::TempExp(tree::Type::PTR, temp_map.newtemp());
-            auto t_size_binop = new tree::Binop(
-                tree::Type::INT, "*", new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
+            auto t_size_binop = new tree::Binop(tree::Type::INT, "*",
+                new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
             auto t_malloc = new tree::ExtCall(tree::Type::PTR, "malloc", new vector<tree::Exp*> { t_size_binop });
             sl->push_back(new tree::Move(t_temp, t_malloc));
 
@@ -903,8 +918,8 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
 
             // end=(a.size+1)*4
             auto end_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
-            auto end_binop = new tree::Binop(
-                tree::Type::INT, "*", new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
+            auto end_binop = new tree::Binop(tree::Type::INT, "*",
+                new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
             sl->push_back(new tree::Move(end_temp, end_binop));
 
             // while(i<end)
@@ -926,7 +941,8 @@ void ASTToTreeVisitor::visit(fdmj::BinaryOp* node)
             body.push_back(new tree::Move(i_temp, i_plus));
 
             // 生成while循环 合并到sl
-            auto sl_while = while_helper(temp_map, i_lt_end, body);
+            auto sl_while
+                = while_helper(temp_map, i_lt_end, body, temp_map.newlabel(), temp_map.newlabel(), temp_map.newlabel());
             for (auto& stm : *sl_while)
                 sl->push_back(stm);
             newExp = new Tr_ex(new tree::Eseq(tree::Type::INT, new tree::Seq(sl), t_temp));
@@ -1047,8 +1063,8 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
             // 初始化相同大小的暂存数组
             auto int_length = Compiler_Config::get("int_length");
             auto t_temp = new tree::TempExp(tree::Type::PTR, temp_map.newtemp());
-            auto t_size_binop = new tree::Binop(
-                tree::Type::INT, "*", new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
+            auto t_size_binop = new tree::Binop(tree::Type::INT, "*",
+                new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
             auto t_malloc = new tree::ExtCall(tree::Type::PTR, "malloc", new vector<tree::Exp*> { t_size_binop });
             sl->push_back(new tree::Move(t_temp, t_malloc));
 
@@ -1063,8 +1079,8 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
 
             // 初始化边界end=(size+1)*4
             auto end_temp = new tree::TempExp(tree::Type::INT, temp_map.newtemp());
-            auto end_binop = new tree::Binop(
-                tree::Type::INT, "*", new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
+            auto end_binop = new tree::Binop(tree::Type::INT, "*",
+                new tree::Binop(tree::Type::INT, "+", a_size_temp, new tree::Const(1)), new tree::Const(int_length));
             sl->push_back(new tree::Move(end_temp, end_binop));
 
             // while(i<end)
@@ -1086,7 +1102,8 @@ void ASTToTreeVisitor::visit(fdmj::UnaryOp* node)
             body.push_back(new tree::Move(i_temp, i_plus));
 
             // 生成while循环 合并到sl
-            auto sl_while = while_helper(temp_map, i_lt_end, body);
+            auto sl_while
+                = while_helper(temp_map, i_lt_end, body, temp_map.newlabel(), temp_map.newlabel(), temp_map.newlabel());
             for (auto& stm : *sl_while)
                 sl->push_back(stm);
             newExp = new Tr_ex(new tree::Eseq(tree::Type::PTR, new tree::Seq(sl), t_temp));

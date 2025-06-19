@@ -5,27 +5,40 @@
 #include <filesystem>
 #include <unistd.h>
 
-#include "ASTheader.hh"
-#include "FDMJAST.hh"
+#include "config.hh"
 
+#include "FDMJAST.hh"
 #include "ast2xml.hh"
 #include "xml2ast.hh"
 
+#include "temp.hh"
+#include "treep.hh"
 #include "xml2tree.hh"
 #include "tree2xml.hh"
 
-#include "config.hh"
-#include "temp.hh"
-#include "treep.hh"
-
-#include "canon.hh"
 #include "quad.hh"
+#include "xml2quad.hh"
+#include "quad2xml.hh"
 
+// .fmj -> .2.ast
+#include "ASTheader.hh"
+
+// .2.ast -> .2-semant.ast
 #include "namemaps.hh"
 #include "semant.hh"
 
+// TODO: 2-semant.ast -> .3.irp
 #include "ast2tree.hh"
+
+// .3.irp -> .3-canon.irp
+#include "canon.hh"
+
+// .3-canon.irp -> .4.quad
 #include "tree2quad.hh"
+
+// .4.quad -> .4-block.quad -> .4-ssa.quad
+#include "blocking.hh"
+#include "quadssa.hh"
 
 using namespace std;
 using namespace fdmj;
@@ -38,21 +51,24 @@ XMLDocument* x;
 int main(int argc, const char* argv[])
 {
     // 切换到test目录
-    filesystem::path filePath(__FILE__);
-    filesystem::path directory = filePath.parent_path();
-    chdir(directory.c_str());
-    chdir("../../test");
+    // filesystem::path filePath(__FILE__);
+    // filesystem::path directory = filePath.parent_path();
+    // chdir(directory.c_str());
+    // chdir("../../test");
 
     string file;
-    string dir = "HW5/";
-    file = dir + "test0";
-    // file = dir + argv[argc - 1];
+    file = argv[argc - 1];
+    // string dir = "HW4/";
+    // file = dir + "hw4test06";
 
     string file_fmj = file + ".fmj";
     string file_ast = file + ".2.ast.my";
     string file_irp = file + ".3.irp.my";
     string file_irp_canon = file + ".3.irp-canon.my";
     string file_quad = file + ".4.quad.my";
+    string file_quad_xml = file + ".4-xml.quad.my";
+    string file_quad_block = file + ".4-block.quad.my";
+    string file_quad_ssa = file + ".4-ssa.quad.my";
 
     cout << "读取: " << file_fmj << endl;
     ifstream fmjfile(file_fmj);
@@ -104,7 +120,50 @@ int main(int argc, const char* argv[])
     qo.close();
 
     ofstream out("/dev/tty");
-    out << "-----Done---" << endl;
 
+    // ----------------------------------------------------------------
+
+    // 需要重新写入并读取quad (摆脱Temp的指针一致性 用于重命名)
+    cout << "写入: " << file_quad_xml << endl;
+    quad2xml(qd, file_quad_xml.c_str());
+
+    cout << "读取: " << file_quad_xml << endl;
+    quad::QuadProgram* x3 = xml2quad(file_quad_xml.c_str());
+
+    // ----------------------------------------------------------------
+
+    cout << "写入: " << file_quad_block << endl;
+    QuadProgram* x4 = blocking(x3);
+    temp_str.clear();
+    temp_str.reserve(100000);
+    ofstream out_block(file_quad_block);
+    if (!out_block) {
+        cerr << "Error opening file: " << file_quad_block << endl;
+        return EXIT_FAILURE;
+    }
+    x4->print(temp_str, 0, true);
+    out_block << temp_str;
+    out_block.flush();
+    out_block.close();
+
+    cout << "写入: " << file_quad_ssa << endl;
+    QuadProgram* x5 = quad2ssa(x4);
+    if (x5 == nullptr) {
+        cerr << "Error converting Quad to Quad-SSA" << endl;
+        return EXIT_FAILURE;
+    }
+    ofstream out_ssa(file_quad_ssa);
+    if (!out_ssa) {
+        cerr << "Error opening file: " << file_quad_ssa << endl;
+        return EXIT_FAILURE;
+    }
+    temp_str.clear();
+    temp_str.reserve(10000);
+    x5->print(temp_str, 0, true);
+    out_ssa << temp_str;
+    out_ssa.flush();
+    out_ssa.close();
+
+    out << "-----Done---" << endl << endl;
     return EXIT_SUCCESS;
 }

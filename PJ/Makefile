@@ -12,7 +12,7 @@ build:
 
 clean: 
 	@$(RM) build ; \
-	$(RM) test/HW3/*.3-canon.xml test/HW5/*.3-canon.xml test/Func/*.3-canon.xml ; \
+	$(RM) test/HW3/*.4.quad test/HW4/*.4.quad test/Other/*.4.quad ; \
 
 rebuild: clean build
 
@@ -43,20 +43,18 @@ run: $(MAIN)
 	done; \
 	cd .. > /dev/null 2>&1 
 
-run_HW3: $(MAIN)
-	cd $(CURDIR)/test/HW3 && \
+define run_test
+	cd $(CURDIR)/test/$(1) && \
 	for file in $$(ls .); do \
-        if [ "$${file##*.}" = "fmj" ]; then \
-            echo "Reading $${file%%.*}"; \
+		if [ "$${file#*.}" = "4-xml.quad" ]; then \
+			echo "Reading $${file}"; \
 			$(MAIN) "$${file%%.*}"; \
-        fi \
+		fi; \
 	done; \
-	cd .. > /dev/null 2>&1 
+	cd .. > /dev/null 2>&1
+endef
 
-FILE ?= test2
-
-run-one: $(MAIN)
-	cd $(CURDIR)/test && \
-	echo "Reading ${FILE}.2.ast"; \
-	$(MAIN) "${FILE}"; \
-	cd .. > /dev/null 2>&1 
+run: $(MAIN)
+	$(call run_test,HW3)
+	$(call run_test,HW4)
+	$(call run_test,Other)

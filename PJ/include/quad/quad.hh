@@ -62,7 +62,6 @@ public:
 //   - Const(常量)
 //   - Name(字符串，来自语法树中的 NAME 节点)
 
-
 enum class QuadKind {
     PROGRAM,
     FUNCDECL,
@@ -81,6 +80,8 @@ enum class QuadKind {
     PHI,
     RETURN
 };
+
+string quadKindToString(QuadKind kind);
 
 // 四元式的类型
 enum class QuadTermKind { TEMP, CONST, MAME };
@@ -118,6 +119,8 @@ public:
     TempExp* get_temp();
     int get_const();
     string get_name();
+
+    QuadTerm* clone() const;
 };
 
 class Quad {
@@ -126,11 +129,11 @@ public:
     tree::Tree* node; // 记录对应的IR结点
     virtual void print(string& output_str, int indent, bool print_def_use) = 0;
     virtual void accept(QuadVisitor& v) = 0;
+    virtual Quad* clone() const = 0;
     Quad(QuadKind k, tree::Tree* node)
         : kind(k)
         , node(node) { };
 };
-
 
 class QuadProgram : public Quad {
 public:
@@ -140,6 +143,7 @@ public:
         , quadFuncDeclList(quadFuncDeclList) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadProgram* clone() const override;
 };
 
 // 函数声明
@@ -161,6 +165,7 @@ public:
         , last_temp_num(ltn) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadFuncDecl* clone() const override;
 };
 
 // 代码块: 语句列表
@@ -177,9 +182,17 @@ public:
         , quadlist(quadlist) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadBlock* clone() const override;
 };
 
 // ------------------------------------------------
+
+static void renameDefUse(set<Temp*>* defUse, Temp* oldTemp, Temp* newTemp)
+{
+    assert(defUse->find(oldTemp) != defUse->end());
+    defUse->erase(oldTemp);
+    defUse->insert(newTemp);
+}
 
 class QuadStm : public Quad {
 public:
@@ -193,6 +206,10 @@ public:
         , use(use) { };
     virtual void accept(QuadVisitor& v) = 0;
     virtual void print(string& output_str, int indent, bool print_def_use) = 0;
+    set<Temp*>* cloneTemps(const set<Temp*>* temps) const;
+
+    virtual void renameDef(Temp* oldTemp, Temp* newTemp) = 0;
+    virtual void renameUse(Temp* oldTemp, Temp* newTemp) = 0;
 };
 
 // 语句->赋值
@@ -207,6 +224,22 @@ public:
         , src(src) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadMove* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(def, oldTemp, newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        assert(src->kind == QuadTermKind::TEMP);
+        TempExp* temp = get<TempExp*>(src->term);
+        assert(temp->temp == oldTemp);
+        temp->temp = newTemp;
+    }
 };
 
 // 语句->读内存
@@ -221,6 +254,22 @@ public:
         , src(src) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadLoad* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(def, oldTemp, newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        assert(src->kind == QuadTermKind::TEMP);
+        TempExp* temp = get<TempExp*>(src->term);
+        assert(temp->temp == oldTemp);
+        temp->temp = newTemp;
+    }
 };
 
 // 语句->写内存
@@ -235,6 +284,28 @@ public:
         , dst(dst) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadStore* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        if (src->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(src->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        if (dst->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(dst->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
+    }
 };
 
 // 语句->二元操作赋值
@@ -253,6 +324,33 @@ public:
         , right(right) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadMoveBinop* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(def, oldTemp, newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        if (left->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(left->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        if (right->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(right->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
+    }
 };
 
 // 语句->类方法函数调用 (忽略返回值)
@@ -263,15 +361,37 @@ public:
     string name;
     QuadTerm* obj_term;
     vector<QuadTerm*>* args;
-    TempExp* result_temp;
-    QuadCall(Tree* node, TempExp* result_temp, string name, QuadTerm* obj_term, vector<QuadTerm*>* args, set<Temp*>* def, set<Temp*>* use)
+    QuadCall(Tree* node, string name, QuadTerm* obj_term, vector<QuadTerm*>* args, set<Temp*>* def, set<Temp*>* use)
         : QuadStm(QuadKind::CALL, node, def, use)
-        , result_temp(result_temp)
         , name(name)
         , obj_term(obj_term)
         , args(args) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadCall* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        if (obj_term->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(obj_term->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        for (auto& arg : *args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+        assert(false);
+    }
 };
 
 // 语句->类方法函数调用 (需要赋值)
@@ -286,6 +406,35 @@ public:
         , call(call) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadMoveCall* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(def, oldTemp, newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        if (call->obj_term->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(call->obj_term->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        for (auto& arg : *call->args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+        assert(false);
+    }
 };
 
 // 语句->外部函数调用 (忽略返回值)
@@ -294,14 +443,29 @@ class QuadExtCall : public QuadStm {
 public:
     string extfun;
     vector<QuadTerm*>* args;
-    TempExp* result_temp;
-    QuadExtCall(Tree* node, TempExp* result_temp, string extfun, vector<QuadTerm*>* args, set<Temp*>* def, set<Temp*>* use)
+    QuadExtCall(Tree* node, string extfun, vector<QuadTerm*>* args, set<Temp*>* def, set<Temp*>* use)
         : QuadStm(QuadKind::EXTCALL, node, def, use)
         , extfun(extfun)
-        , result_temp(result_temp)
         , args(args) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadExtCall* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        for (auto& arg : *args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+        assert(false);
+    }
 };
 
 // 语句->外部函数调用 (需要赋值)
@@ -316,6 +480,28 @@ public:
         , extcall(extcall) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadMoveExtCall* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(def, oldTemp, newTemp);
+        assert(dst->temp == oldTemp);
+        dst->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        for (auto& arg : *extcall->args) {
+            if (arg->kind == QuadTermKind::TEMP) {
+                TempExp* temp = get<TempExp*>(arg->term);
+                if (temp->temp == oldTemp) {
+                    temp->temp = newTemp;
+                    return;
+                }
+            }
+        }
+        assert(false);
+    }
 };
 
 // 语句->标签
@@ -328,6 +514,10 @@ public:
         , label(label) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadLabel* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override { assert(false); }
 };
 
 // 语句->跳转
@@ -340,6 +530,10 @@ public:
         , label(label) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadJump* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override { assert(false); }
 };
 
 // 语句->条件跳转
@@ -359,8 +553,32 @@ public:
         , f(f) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadCJump* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        if (left->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(left->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        if (right->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(right->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
+    }
 };
 
+// 语句->Phi函数
+// Phi: temp <- {<temp, label>}
 class QuadPhi : public QuadStm {
 public:
     TempExp* temp;
@@ -371,6 +589,15 @@ public:
         , args(args) { };
     void accept(QuadVisitor& v) { v.visit(this); };
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadPhi* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(def, oldTemp, newTemp);
+        assert(temp->temp == oldTemp);
+        temp->temp = newTemp;
+    }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override { assert(false); }
 };
 
 // 语句->返回语句
@@ -383,6 +610,21 @@ public:
         , value(value) { };
     void accept(QuadVisitor& v) { v.visit(this); }
     void print(string& output_str, int indent, bool print_def_use) override;
+    QuadReturn* clone() const override;
+
+    void renameDef(Temp* oldTemp, Temp* newTemp) override { assert(false); }
+    void renameUse(Temp* oldTemp, Temp* newTemp) override
+    {
+        renameDefUse(use, oldTemp, newTemp);
+        if (value->kind == QuadTermKind::TEMP) {
+            TempExp* temp = get<TempExp*>(value->term);
+            if (temp->temp == oldTemp) {
+                temp->temp = newTemp;
+                return;
+            }
+        }
+        assert(false);
+    }
 };
 
 } // namespace quad
