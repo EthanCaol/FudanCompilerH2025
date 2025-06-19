@@ -1,3 +1,5 @@
+//linked list simulation using class
+
 public int main() {
    class C c;
    c = c.next(0);

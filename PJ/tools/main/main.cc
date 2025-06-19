@@ -43,9 +43,13 @@
 // .4-ssa.quad -> .4-ssa-opt.quad
 #include "opt.hh"
 
-// .4-ssa-opt.quad -> ".4-ssa-prepared (.clr)
+// .4-ssa-opt.quad -> .4-ssa-prepared (.clr)
 #include "prepareregalloc.hh"
 #include "regalloc.hh"
+
+// .4-ssa-prepared (.clr) -> .s
+#include "color.hh"
+#include "quad2rpi.hh"
 
 using namespace std;
 using namespace fdmj;
@@ -72,6 +76,8 @@ void exec(string file)
 
     string file_quad_prepared = file + ".6-ssa-prepared.my";
     string file_quad_color_xml = file + ".6-ssa-prepared.clr.my";
+
+    string file_rpi = file + ".s.my";
 
     cout << "读取: " << file_fmj << endl;
     ifstream fmjfile(file_fmj);
@@ -134,9 +140,9 @@ void exec(string file)
 
     // ----------------------------------------------------------------
 
-    // 测试用
-    quad::QuadProgram* tempQuad = xml2quad((file + ".4-ssa-xml.quad").c_str());
-    quad2file(tempQuad, (file + ".4-ssa.quad").c_str(), true);
+    // TODO: 测试用
+    quad::QuadProgram* tempQuad = xml2quad((file + ".4-prepared-xml.quad").c_str());
+    quad2file(tempQuad, (file + ".6-ssa-prepared").c_str(), true);
 
     // 寄存器数量
     int number_of_colors = 5; // default 9: r0-r8
@@ -149,6 +155,14 @@ void exec(string file)
     cout << "着色: " << file_quad_color_xml << endl;
     XMLDocument* x8 = coloring(x7, number_of_colors, false);
     x8->SaveFile(file_quad_color_xml.c_str());
+
+    // ----------------------------------------------------------------
+
+    cout << "读取: " << file_quad_color_xml << endl;
+    ColorMap* colormap = xml2colormap(file_quad_color_xml);
+
+    cout << "写入: " << file_rpi << endl;
+    quad2rpi(x7, colormap, file_rpi);
 
     cout << "-----Done---" << endl << endl;
 }
@@ -175,7 +189,7 @@ int main(int argc, const char* argv[])
     }
 
     for (auto file : files) {
-        cout  << file << endl;
+        cout << file << endl;
         exec(file);
     }
 }

@@ -46,7 +46,6 @@ int main(int argc, const char* argv[])
 
     cout << "读取colors: " << file_quad_color_xml << endl;
     ColorMap* colormap = xml2colormap(file_quad_color_xml);
-    // colormap->print();
 
     cout << "保存Rpi: " << file_rpi << endl;
     quad2rpi(x3, colormap, file_rpi);
