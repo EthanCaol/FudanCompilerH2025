@@ -12,7 +12,7 @@ build:
 
 clean: 
 	@$(RM) build ; \
-	$(RM) test/HW3/*.4.quad test/HW4/*.4.quad test/Other/*.4.quad ; \
+	$(RM) test/input_example/*.my; \
 
 rebuild: clean build
 
@@ -32,16 +32,6 @@ PATCHDEMO = $(BUILD_DIR)/tools/patchdemo/patchdemo
 
 patchdemo: $(PATCHDEMO)
 	$(PATCHDEMO) "test/patchdemo" 
-
-run: $(MAIN)
-	cd $(CURDIR)/test && \
-	for file in $$(ls .); do \
-        if [ "$${file##*.}" = "fmj" ]; then \
-            echo "Reading $${file%%.*}"; \
-			$(MAIN) "$${file%%.*}"; \
-        fi \
-	done; \
-	cd .. > /dev/null 2>&1 
 
 define run_test
 	cd $(CURDIR)/test/$(1) && \

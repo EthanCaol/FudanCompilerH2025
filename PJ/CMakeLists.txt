@@ -13,6 +13,7 @@ include_directories(include/ir)
 include_directories(include/opt)
 include_directories(include/quad)
 include_directories(include/quadflow)
+include_directories(include/rpi)
 include_directories(include/util)
 include_directories(vendor/tinyxml2)
 

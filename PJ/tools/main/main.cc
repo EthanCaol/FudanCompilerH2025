@@ -27,7 +27,7 @@
 #include "namemaps.hh"
 #include "semant.hh"
 
-// TODO: 2-semant.ast -> .3.irp
+// 2-semant.ast -> .3.irp
 #include "ast2tree.hh"
 
 // .3.irp -> .3-canon.irp
@@ -43,6 +43,10 @@
 // .4-ssa.quad -> .4-ssa-opt.quad
 #include "opt.hh"
 
+// .4-ssa-opt.quad -> ".4-ssa-prepared (.clr)
+#include "prepareregalloc.hh"
+#include "regalloc.hh"
+
 using namespace std;
 using namespace fdmj;
 using namespace tree;
@@ -51,19 +55,8 @@ using namespace tinyxml2;
 #define with_location_info false
 XMLDocument* x;
 
-int main(int argc, const char* argv[])
+void exec(string file)
 {
-    // 切换到test目录
-    // filesystem::path filePath(__FILE__);
-    // filesystem::path directory = filePath.parent_path();
-    // chdir(directory.c_str());
-    // chdir("../../test");
-
-    string file;
-    file = argv[argc - 1];
-    // string dir = "HW4/";
-    // file = dir + "hw4test06";
-
     string file_fmj = file + ".fmj";
     string file_ast = file + ".2.ast.my";
 
@@ -74,14 +67,18 @@ int main(int argc, const char* argv[])
     string file_quad_xml = file + ".4-xml.quad.my";
     string file_quad_block = file + ".4-block.quad.my";
     string file_quad_ssa = file + ".4-ssa.quad.my";
-    string file_quad_ssa_opt = file + ".4-ssa-opt.quad.my";
+
+    string file_quad_ssa_opt = file + ".5-ssa-opt.quad.my";
+
+    string file_quad_prepared = file + ".6-ssa-prepared.my";
+    string file_quad_color_xml = file + ".6-ssa-prepared.clr.my";
 
     cout << "读取: " << file_fmj << endl;
     ifstream fmjfile(file_fmj);
     fdmj::Program* root = fdmj::fdmjParser(fmjfile, false);
     if (root == nullptr) {
         cout << "AST无效" << endl;
-        return EXIT_FAILURE;
+        exit(1);
     }
 
     cout << "写入: " << file_ast << endl;
@@ -90,7 +87,7 @@ int main(int argc, const char* argv[])
     x = ast2xml(root, semant_map, with_location_info, true);
     if (x->Error()) {
         cout << "AST无效" << endl;
-        return EXIT_FAILURE;
+        exit(1);
     }
     x->SaveFile(file_ast.c_str());
 
@@ -108,24 +105,7 @@ int main(int argc, const char* argv[])
 
     cout << "写入: " << file_quad << endl;
     QuadProgram* qd = tree2quad(ir_canon);
-    if (qd == nullptr) {
-        cerr << "Error converting IR to Quad" << endl;
-        return EXIT_FAILURE;
-    }
-
-    string temp_str;
-    temp_str.reserve(50000);
-    qd->print(temp_str, 0, true);
-    ofstream qo(file_quad);
-    if (!qo) {
-        cerr << "Error opening file: " << file_quad << endl;
-        return EXIT_FAILURE;
-    }
-    qo << temp_str;
-    qo.flush();
-    qo.close();
-
-    ofstream out("/dev/tty");
+    quad2file(qd, file_quad.c_str(), true);
 
     // ----------------------------------------------------------------
 
@@ -140,42 +120,62 @@ int main(int argc, const char* argv[])
 
     cout << "写入: " << file_quad_block << endl;
     QuadProgram* x4 = blocking(x3);
-    temp_str.clear();
-    temp_str.reserve(100000);
-    ofstream out_block(file_quad_block);
-    if (!out_block) {
-        cerr << "Error opening file: " << file_quad_block << endl;
-        return EXIT_FAILURE;
-    }
-    x4->print(temp_str, 0, true);
-    out_block << temp_str;
-    out_block.flush();
-    out_block.close();
+    quad2file(x4, file_quad_block.c_str(), true);
 
     cout << "写入: " << file_quad_ssa << endl;
     QuadProgram* x5 = quad2ssa(x4);
-    if (x5 == nullptr) {
-        cerr << "Error converting Quad to Quad-SSA" << endl;
-        return EXIT_FAILURE;
-    }
-    ofstream out_ssa(file_quad_ssa);
-    if (!out_ssa) {
-        cerr << "Error opening file: " << file_quad_ssa << endl;
-        return EXIT_FAILURE;
-    }
-    temp_str.clear();
-    temp_str.reserve(10000);
-    x5->print(temp_str, 0, true);
-    out_ssa << temp_str;
-    out_ssa.flush();
-    out_ssa.close();
+    quad2file(x5, file_quad_ssa.c_str(), true);
 
     // ----------------------------------------------------------------
 
-    QuadProgram* x6 = optProg(x5);
-    quad2file(x6, file_quad_ssa_opt.c_str(), true);
+    // cout << "写入: " << file_quad_ssa_opt << endl;
+    // QuadProgram* x6 = optProg(x5);
+    // quad2file(x6, file_quad_ssa_opt.c_str(), true);
 
+    // ----------------------------------------------------------------
 
-    out << "-----Done---" << endl << endl;
-    return EXIT_SUCCESS;
+    // 测试用
+    quad::QuadProgram* tempQuad = xml2quad((file + ".4-ssa-xml.quad").c_str());
+    quad2file(tempQuad, (file + ".4-ssa.quad").c_str(), true);
+
+    // 寄存器数量
+    int number_of_colors = 5; // default 9: r0-r8
+    cout << "颜色数: " << number_of_colors << endl;
+
+    cout << "写入: " << file_quad_prepared << endl;
+    QuadProgram* x7 = prepareRegAlloc(x5); // TODO: 是否启动 x6
+    quad2file(x7, file_quad_prepared.c_str(), true);
+
+    cout << "着色: " << file_quad_color_xml << endl;
+    XMLDocument* x8 = coloring(x7, number_of_colors, false);
+    x8->SaveFile(file_quad_color_xml.c_str());
+
+    cout << "-----Done---" << endl << endl;
+}
+
+int main(int argc, const char* argv[])
+{
+    // 切换到test目录
+    filesystem::path filePath(__FILE__);
+    filesystem::path directory = filePath.parent_path();
+    chdir(directory.c_str());
+    chdir("../../test/input_example");
+
+    vector<string> files;
+    files.push_back("hw8test06");
+
+    // files.push_back("bubblesort");
+    // files.push_back("fibonacci");
+
+    // // hw8测试文件
+    // for (int i = 0; i <= 12; i++) {
+    //     char file_name[100];
+    //     sprintf(file_name, "hw8test%02d", i);
+    //     files.push_back(string(file_name));
+    // }
+
+    for (auto file : files) {
+        cout  << file << endl;
+        exec(file);
+    }
 }

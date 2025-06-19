@@ -14,6 +14,7 @@ target_link_libraries(${MAIN} PUBLIC
     opt
     quad
     quadflow
+    rpi
     util
     vendor_xml
 )

@@ -16,17 +16,13 @@
 using namespace std;
 using namespace quad;
 
-// This is to prepare a QuadFunc for register allocation, specifically following the ARM convention for interprocedure
-// calls.
-//  1) For each function def, push callee saved registers (r4-r11) and fp, lr to the stack add the adjustments to sp and
-//  fp
+// This is to prepare a QuadFunc for register allocation, specifically following the ARM convention for interprocedure calls.
+//  1) For each function def, push callee saved registers (r4-r11) and fp, lr to the stack add the adjustments to sp and fp
 //     and: add instructions that move r0-r3 to the corresponding temps (after the entry label of the first block)
-//  2) For each call: it assumes that the function has at most 4 parameters. Also, the call return needs to be in r0,
-//  and a move instruction
+//  2) For each call: it assumes that the function has at most 4 parameters. Also, the call return needs to be in r0, and a move instruction
 //     needs to begin the call to move r0 to the original the return value (if it's move_call)
-//     Hence, for each (ext)call, add the move instructions to move the parameters to r0-r3, and change the call
-//     parameters to r0-r3 if it's a move_(ext)call, change the call return to r0 and add a move instruction to move r0
-//     to the original destination
+//     Hence, for each (ext)call, add the move instructions to move the parameters to r0-r3, and change the call parameters to r0-r3
+//     if it's a move_(ext)call, change the call return to r0 and add a move instruction to move r0 to the original destination
 //  3) for each return, add the move instructions to move the return value to r0, and change the return to r0
 //     and also adjust the sp and pop out the callee saved registers (r4-r11) and fp, lr
 //  4) for each phi node, add the move instructions to move the phi value in the origin block
@@ -65,8 +61,8 @@ void handleEntry(QuadFuncDecl* quadFuncDecl)
                 def->insert(new Temp(param->num));
                 set<Temp*>* use = new set<Temp*>();
                 use->insert(new Temp(i));
-                QuadMove* move = new QuadMove(nullptr, new TempExp(Type::INT, new Temp(param->num)),
-                    new QuadTerm(new TempExp(Type::INT, new Temp(i))), def, use);
+                QuadMove* move = new QuadMove(
+                    nullptr, new TempExp(Type::INT, new Temp(param->num)), new QuadTerm(new TempExp(Type::INT, new Temp(i))), def, use);
                 // Here we use INT as the type to simpify the code (as we assume all params are int for now)
                 // This implies that all addresses are int as well (32 bits or 64 bits machines are both ok)
                 firstBlock->quadlist->insert(firstBlock->quadlist->begin() + 1, move);
@@ -92,8 +88,7 @@ void handleEntry(QuadFuncDecl* quadFuncDecl)
     if (entryLabel != nullptr) {
         //set<Temp*>* def = new set<Temp*>(); def->insert(new Temp(14)); //lr is temp 14
         //entryLabel->def = def;
-        //set<Temp*>* new_def = new set<Temp*>(); new_def->insert(return_add_temp); //this is to remember the return
-    value
+        //set<Temp*>* new_def = new set<Temp*>(); new_def->insert(return_add_temp); //this is to remember the return value
         //QuadMove* move = new QuadMove(nullptr, new TempExp(Type::PTR, return_add_temp),
         //                                new QuadTerm(new TempExp(Type::PTR, new Temp(14))), new_def, def);
         //firstBlock->quadlist->insert(firstBlock->quadlist->begin()+1, move);
@@ -174,15 +169,14 @@ static void handlePhi(QuadFuncDecl* quadFuncDecl)
                             def->insert(phi->temp->temp);
                             set<Temp*>* use = new set<Temp*>();
                             use->insert(arg_temp); // change the temp number to the index
-                            QuadMove* move = new QuadMove(nullptr, new TempExp(Type::INT, phi->temp->temp),
-                                new QuadTerm(new TempExp(Type::INT, arg_temp)), def, use);
+                            QuadMove* move = new QuadMove(
+                                nullptr, new TempExp(Type::INT, phi->temp->temp), new QuadTerm(new TempExp(Type::INT, arg_temp)), def, use);
                             // find the block that has the label arg_label
                             bool found = false;
                             for (QuadBlock* block : *quadFuncDecl->quadblocklist) {
                                 if (block->entry_label->num == arg_label->num) { // found the block
                                     // last stmt has to be a jump, so add the move right before it
-                                    block->quadlist->insert(
-                                        block->quadlist->begin() + block->quadlist->size() - 1, move);
+                                    block->quadlist->insert(block->quadlist->begin() + block->quadlist->size() - 1, move);
                                     found = true;
                                     break; // found the label, break
                                 }
@@ -226,8 +220,8 @@ static void handleCall(QuadFuncDecl* quadFuncDecl)
                     break; // end of the list
                 QuadStm* stmt = block->quadlist->at(i);
                 if (stmt != nullptr
-                    && (stmt->kind == QuadKind::CALL || stmt->kind == QuadKind::EXTCALL
-                        || stmt->kind == QuadKind::MOVE_CALL || stmt->kind == QuadKind::MOVE_EXTCALL)) {
+                    && (stmt->kind == QuadKind::CALL || stmt->kind == QuadKind::EXTCALL || stmt->kind == QuadKind::MOVE_CALL
+                        || stmt->kind == QuadKind::MOVE_EXTCALL)) {
                     vector<QuadTerm*>* args;
                     QuadTerm* obj = nullptr;
                     if (stmt->kind == QuadKind::CALL) {
@@ -279,8 +273,7 @@ static void handleCall(QuadFuncDecl* quadFuncDecl)
                                     cerr << "Error: arg is not a temp or const" << endl;
                                     exit(EXIT_FAILURE);
                                 }
-                                QuadMove* move
-                                    = new QuadMove(nullptr, new TempExp(new_type, new Temp(j)), new_arg, def, use);
+                                QuadMove* move = new QuadMove(nullptr, new TempExp(new_type, new Temp(j)), new_arg, def, use);
                                 block->quadlist->insert(block->quadlist->begin() + i, move);
                                 *arg = *new QuadTerm(new TempExp(new_type, new Temp(j))); // change arg to rj
                             } else {
@@ -330,8 +323,8 @@ static void handleCall(QuadFuncDecl* quadFuncDecl)
                         mc_def->insert(new_dst->temp);
                         set<Temp*>* mc_use = new set<Temp*>();
                         mc_use->insert(new Temp(0)); // r0
-                        QuadMove* mv_move = new QuadMove(
-                            nullptr, new_dst, new QuadTerm(new TempExp(new_dst->type, new Temp(0))), mc_def, mc_use);
+                        QuadMove* mv_move
+                            = new QuadMove(nullptr, new_dst, new QuadTerm(new TempExp(new_dst->type, new Temp(0))), mc_def, mc_use);
                         block->quadlist->insert(block->quadlist->begin() + i + 1, mv_move);
                         i++; // move the index forward
                     }
@@ -369,8 +362,7 @@ static void handleOtherStm(QuadFuncDecl* quadFuncDecl)
                             if (store->use == nullptr)
                                 store->use = new set<Temp*>();
                             store->use->insert(new_t->temp);
-                            QuadStore* new_store
-                                = new QuadStore(nullptr, new QuadTerm(new_t), store->dst, nullptr, store->use);
+                            QuadStore* new_store = new QuadStore(nullptr, new QuadTerm(new_t), store->dst, nullptr, store->use);
                             // now replace
                             block->quadlist->insert(block->quadlist->begin() + i, new_store);
                             block->quadlist->insert(block->quadlist->begin() + i, new_move);
@@ -386,8 +378,7 @@ static void handleOtherStm(QuadFuncDecl* quadFuncDecl)
                             if (store->use == nullptr)
                                 store->use = new set<Temp*>();
                             store->use->insert(new_t->temp);
-                            QuadStore* new_store
-                                = new QuadStore(nullptr, new QuadTerm(new_t), store->dst, nullptr, store->use);
+                            QuadStore* new_store = new QuadStore(nullptr, new QuadTerm(new_t), store->dst, nullptr, store->use);
                             // now replace
                             block->quadlist->insert(block->quadlist->begin() + i, new_store);
                             block->quadlist->insert(block->quadlist->begin() + i, new_load);
@@ -411,8 +402,7 @@ static void handleOtherStm(QuadFuncDecl* quadFuncDecl)
                             def->insert(new_t->temp);
                             new_move = new QuadMove(nullptr, new_t, move_binop->left, def, nullptr);
                         }
-                        if ((move_binop->binop == "*" || move_binop->binop == "/")
-                            && move_binop->right->kind == QuadTermKind::CONST) {
+                        if ((move_binop->binop == "*" || move_binop->binop == "/") && move_binop->right->kind == QuadTermKind::CONST) {
                             new_t2 = new TempExp(Type::INT, temp_map->newtemp());
                             set<Temp*>* def2 = new set<Temp*>();
                             def2->insert(new_t2->temp);
@@ -435,8 +425,7 @@ static void handleOtherStm(QuadFuncDecl* quadFuncDecl)
                             move_binop->use->insert(new_t2->temp);
                         QuadMoveBinop* new_move_binop = new QuadMoveBinop(nullptr, move_binop->dst,
                             (new_t != nullptr ? new QuadTerm(new_t) : move_binop->left), move_binop->binop,
-                            (new_t2 != nullptr ? new QuadTerm(new_t2) : move_binop->right), move_binop->def,
-                            move_binop->use);
+                            (new_t2 != nullptr ? new QuadTerm(new_t2) : move_binop->right), move_binop->def, move_binop->use);
                         block->quadlist->insert(block->quadlist->begin() + i, new_move_binop);
                     } break;
                     case QuadKind::CJUMP: { // both sides must be temps
@@ -470,10 +459,8 @@ static void handleOtherStm(QuadFuncDecl* quadFuncDecl)
                             block->quadlist->insert(block->quadlist->begin() + i, new_move2);
                             i++;
                         }
-                        QuadCJump* new_cjump = new QuadCJump(nullptr, cjump->relop,
-                            (new_t != nullptr ? new QuadTerm(new_t) : cjump->left),
-                            (new_t2 != nullptr ? new QuadTerm(new_t2) : cjump->right), cjump->t, cjump->f, cjump->def,
-                            cjump->use);
+                        QuadCJump* new_cjump = new QuadCJump(nullptr, cjump->relop, (new_t != nullptr ? new QuadTerm(new_t) : cjump->left),
+                            (new_t2 != nullptr ? new QuadTerm(new_t2) : cjump->right), cjump->t, cjump->f, cjump->def, cjump->use);
                         block->quadlist->insert(block->quadlist->begin() + i, new_cjump);
                     } break;
                     default:

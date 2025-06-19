@@ -1,5 +1,0 @@
-Function _^main^_^main() last_label=104 last_temp=101:
-  Block: Entry Label: L104
-    Exit labels: L102 L103 
-    LABEL L104; def: use: 
-    CJUMP > t100:INT Const:1? L102 : L103; def: use: 100 

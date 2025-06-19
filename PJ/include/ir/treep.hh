@@ -169,16 +169,15 @@ public:
     void accept(Visitor& v) { v.visit(this); }
 };
 
-
 // 语句->表达式 (忽略返回值)
 class ExpStm : public Stm {
-  public:
-      Exp* exp;
-      ExpStm(Exp* exp)
-          : exp(exp) { };
-      Kind getTreeKind() { return Kind::EXPSTM; }
-      void accept(Visitor& v) { v.visit(this); }
-  };
+public:
+    Exp* exp;
+    ExpStm(Exp* exp)
+        : exp(exp) { };
+    Kind getTreeKind() { return Kind::EXPSTM; }
+    void accept(Visitor& v) { v.visit(this); }
+};
 
 // 语句->标签
 // Label
@@ -244,8 +243,6 @@ public:
     Kind getTreeKind() { return Kind::PHI; }
     void accept(Visitor& v) { v.visit(this); }
 };
-
-
 
 // 语句->返回语句
 // Return: Temp
