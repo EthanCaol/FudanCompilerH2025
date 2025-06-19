@@ -56,11 +56,11 @@
                         <Const value="4"/>
                     </Move>
                     <Move>
-                        <Temp type="INT" temp="102"/>
+                        <Temp type="INT" temp="101"/>
                         <Const value="0"/>
                     </Move>
                     <Move>
-                        <Temp type="INT" temp="101"/>
+                        <Temp type="INT" temp="102"/>
                         <Const value="0"/>
                     </Move>
                     <Sequence>

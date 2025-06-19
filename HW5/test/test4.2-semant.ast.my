@@ -16,12 +16,12 @@
             </VarDecl>
             <VarDecl>
                 <Type typeKind="INT"/>
-                <IdExp id="sum"/>
+                <IdExp id="i"/>
                 <IntInit val="0"/>
             </VarDecl>
             <VarDecl>
                 <Type typeKind="INT"/>
-                <IdExp id="i"/>
+                <IdExp id="sum"/>
                 <IntInit val="0"/>
             </VarDecl>
         </VarDeclList>

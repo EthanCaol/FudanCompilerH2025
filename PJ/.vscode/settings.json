@@ -1,0 +1,23 @@
+{
+    "files.associations": {
+        "iosfwd": "cpp",
+        "variant": "cpp",
+        "ostream": "cpp",
+        "array": "cpp",
+        "*.tcc": "cpp",
+        "memory": "cpp",
+        "istream": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp",
+        "new": "cpp",
+        "iostream": "cpp",
+        "set": "cpp",
+        "string": "cpp",
+        "vector": "cpp",
+        "unordered_map": "cpp",
+        "string_view": "cpp",
+        "deque": "cpp"
+    },
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+}

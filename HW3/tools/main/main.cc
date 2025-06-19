@@ -48,7 +48,6 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    delete root;
     cout << "从XML文件读取AST: " << file_ast << endl;
     x->LoadFile(file_ast.c_str());
     root = xml2ast(x->FirstChildElement());
