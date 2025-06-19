@@ -253,7 +253,7 @@ vector<tree::Stm*>* array_decl_helper(fdmj::VarDecl* node, tree::TempExp* arr_te
     int size = 0; // 计算数组大小
     if (type->arity && type->arity->val != 0)
         size = type->arity->val;
-    else if (holds_alternative<vector<IntExp*>*>(init))
+    if (holds_alternative<vector<IntExp*>*>(init))
         size = get<vector<IntExp*>*>(init)->size();
 
     // temp=malloc((size+1) * int_length)

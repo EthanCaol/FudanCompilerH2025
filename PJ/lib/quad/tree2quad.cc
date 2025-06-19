@@ -268,6 +268,7 @@ void Tree2Quad::visit(Move* node)
     // 目的是内存
     QuadTerm* memDst = nullptr;
     if (node->dst->getTreeKind() == Kind::MEM) {
+        // 处理目标Mem
         static_cast<Mem*>(node->dst)->mem->accept(*this);
         assert(visit_term->kind == QuadTermKind::TEMP);
         memDst = visit_term;
@@ -277,11 +278,17 @@ void Tree2Quad::visit(Move* node)
         if (node->src->getTreeKind() == Kind::TEMPEXP || node->src->getTreeKind() == Kind::CONST
             || node->src->getTreeKind() == Kind::NAME) {
 
+            // 处理源
             node->src->accept(*this);
             assert(visit_term->kind == QuadTermKind::TEMP || visit_term->kind == QuadTermKind::CONST
                 || visit_term->kind == QuadTermKind::MAME);
             auto src = visit_term;
             visit_term = nullptr;
+
+            // 构造use集合
+            if (src->kind == QuadTermKind::TEMP)
+                use->insert(src->get_temp()->temp);
+            use->insert(memDst->get_temp()->temp);
 
             visit_results.push_back(new QuadStore(node, src, memDst, def, use));
             return;
@@ -307,14 +314,12 @@ void Tree2Quad::visit(Move* node)
     // Load: temp <- mem(term)
     if (node->src->getTreeKind() == Kind::MEM) {
         visit_results.push_back(load_helper(static_cast<Mem*>(node->src), dst));
-        return;
     }
 
     // QuadMoveBinop
     // src: 二元运算
     else if (node->src->getTreeKind() == Kind::BINOP) {
         visit_results.push_back(binop_helper(static_cast<Binop*>(node->src), dst));
-        return;
     }
 
     // QuadMoveCall
@@ -329,14 +334,6 @@ void Tree2Quad::visit(Move* node)
     else if (node->src->getTreeKind() == Kind::EXTCALL) {
         auto extcall = extcall_helper(static_cast<ExtCall*>(node->src));
         visit_results.push_back(new QuadMoveExtCall(node, dst, extcall, def, extcall->use));
-    }
-
-    // ----------------------------------------------------------------
-
-    if (node->dst->getTreeKind() == Kind::MEM) {
-        assert(memDst);
-        visit_results.push_back(new QuadStore(
-            node, new QuadTerm(dst), memDst, new set<Temp*>(), new set<Temp*> { dst->temp, memDst->get_temp()->temp }));
     }
 
     // QuadMove
@@ -354,6 +351,14 @@ void Tree2Quad::visit(Move* node)
 
         // 构造赋值语句
         visit_results.push_back(new QuadMove(node, dst, src, def, use));
+    }
+
+    // ----------------------------------------------------------------
+
+    if (node->dst->getTreeKind() == Kind::MEM) {
+        assert(memDst);
+        visit_results.push_back(new QuadStore(
+            node, new QuadTerm(dst), memDst, new set<Temp*>(), new set<Temp*> { dst->temp, memDst->get_temp()->temp }));
     }
 }
 

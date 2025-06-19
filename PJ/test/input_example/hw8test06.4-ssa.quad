@@ -49,10 +49,9 @@ Function C^next(t101, t102) last_label=105 last_temp=121:
     MOVE t11100:PTR <- t10000:PTR; def: 11100 use: 10000 
     MOVE_BINOP t11000:INT <- (+, t102:INT, Const:1); def: 11000 use: 102 
     MOVE_BINOP t11800:PTR <- (+, t10000:PTR, Const:4); def: 11800 use: 10000 
-    MOVE_CALL t119:PTR <- next[t11200:PTR] (t11100:PTR, t11000:INT); def: use: 11200 11100 11000 
+    MOVE_CALL t119:PTR <- next[t11200:PTR] (t11100:PTR, t11000:INT); def: use: 11100 11200 11000 
     STORE t119:PTR -> Mem(t11800:PTR); def: use: 11800 119 
     JUMP L104; def: use: 
-    
   Block: Entry Label: L103
     Exit labels: L104 
     LABEL L103; def: use: 

@@ -200,5 +200,5 @@ Function b1^bubbleSort(t102, t103, t104) last_label=127 last_temp=162:
     MOVE t13100:PTR <- t102:PTR; def: 13100 use: 102 
     MOVE t13000:PTR <- t103:PTR; def: 13000 use: 103 
     MOVE_BINOP t12900:INT <- (-, t104:INT, Const:1); def: 12900 use: 104 
-    MOVE_CALL t13300:INT <- bubbleSort[t13200:PTR] (t13100:PTR, t13000:PTR, t12900:INT); def: 13300 use: 13200 13000 12900 13100 
+    MOVE_CALL t13300:INT <- bubbleSort[t13200:PTR] (t13100:PTR, t13000:PTR, t12900:INT); def: 13300 use: 13000 13200 12900 13100 
     RETURN t13300:INT; def: use: 13300 

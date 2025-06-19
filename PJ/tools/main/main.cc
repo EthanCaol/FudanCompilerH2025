@@ -162,17 +162,17 @@ int main(int argc, const char* argv[])
     chdir("../../test/input_example");
 
     vector<string> files;
-    files.push_back("hw8test06");
+    // files.push_back("hw8test06");
 
-    // files.push_back("bubblesort");
-    // files.push_back("fibonacci");
+    files.push_back("bubblesort");
+    files.push_back("fibonacci");
 
-    // // hw8测试文件
-    // for (int i = 0; i <= 12; i++) {
-    //     char file_name[100];
-    //     sprintf(file_name, "hw8test%02d", i);
-    //     files.push_back(string(file_name));
-    // }
+    // hw8测试文件
+    for (int i = 0; i <= 12; i++) {
+        char file_name[100];
+        sprintf(file_name, "hw8test%02d", i);
+        files.push_back(string(file_name));
+    }
 
     for (auto file : files) {
         cout  << file << endl;
