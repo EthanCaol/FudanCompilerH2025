@@ -265,7 +265,7 @@ void Tree2Quad::visit(Move* node)
     // dst: 写内存
     // Store: mem(term) <- term
 
-    // 目的是内存
+    // 如果目的是内存
     QuadTerm* memDst = nullptr;
     if (node->dst->getTreeKind() == Kind::MEM) {
         // 处理目标Mem

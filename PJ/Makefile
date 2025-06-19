@@ -12,7 +12,7 @@ build:
 
 clean: 
 	@$(RM) build ; \
-	$(RM) test/input_example/*.my; \
+	$(RM) test/input_example/*.my \
 
 rebuild: clean build
 
@@ -22,29 +22,29 @@ handin:
 		exit 1; \
 	fi; \
 	filename="22300240008-曹奕伦"; \
-	zip -q -r "docs/$$filename-hw5.zip" \
+	zip -q -r "docs/$$filename-hw9.zip" \
 	  docs/report.pdf include lib
 
-.PHONY: run run-one
+.PHONY: run run-one gentests gentest-one patchdemo 
 
+GENAST = $(CURDIR)/../HW5/build/tools/generatetests/gentests
+GENIR = $(CURDIR)/../HW5/build/tools/main/main
+GENQUAD = $(CURDIR)/../HW6/build/tools/main/main
+GENSSA = $(CURDIR)/../HW7/build/tools/main/main
 MAIN = $(BUILD_DIR)/tools/main/main
+GENTESTS = $(BUILD_DIR)/tools/generatetests/gentests
 PATCHDEMO = $(BUILD_DIR)/tools/patchdemo/patchdemo
 
-patchdemo: $(PATCHDEMO)
-	$(PATCHDEMO) "test/patchdemo" 
 
-define run_test
-	cd $(CURDIR)/test/$(1) && \
+run-assem: $(MAIN)
+	cd $(CURDIR)/test/output_example/k9 && \
 	for file in $$(ls .); do \
-		if [ "$${file#*.}" = "4-xml.quad" ]; then \
-			echo "Reading $${file}"; \
-			$(MAIN) "$${file%%.*}"; \
+		if [ "$${file#*.}" = "4-prepared-xml.quad" ]; then \
+			echo "Reading ${file}.4-prepared-xml.quad and ${file}.4-xml.clr"; \
+			arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -Wall -Wextra --static -o "$${file%%.*}" "$${file%%.*}.s" ../vendor/libsysy/libsysy32.s -lm; \
+			echo "Running the final assembly program........." ; \
+			# qemu-arm -B 0x1000 $${file%%.*}; \
 		fi; \
 	done; \
-	cd .. > /dev/null 2>&1
-endef
+	cd .. > /dev/null 2>&1 
 
-run: $(MAIN)
-	$(call run_test,HW3)
-	$(call run_test,HW4)
-	$(call run_test,Other)

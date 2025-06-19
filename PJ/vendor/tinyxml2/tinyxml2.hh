@@ -42,8 +42,6 @@ distribution.
 #endif
 #include <stdint.h>
 
-#include "ASTheader.hh"
-
 /*
 	gcc:
         g++ -Wall -DTINYXML2_DEBUG tinyxml2.cpp xmltest.cpp -o gccxmltest.exe

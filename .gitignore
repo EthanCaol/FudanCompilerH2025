@@ -36,3 +36,5 @@ build/
 
 # vi temp files
 *.swp
+
+*.my

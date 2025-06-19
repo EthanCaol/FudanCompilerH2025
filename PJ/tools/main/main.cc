@@ -61,6 +61,10 @@ XMLDocument* x;
 
 void exec(string file)
 {
+    // 寄存器数量
+    int number_of_colors = 9; // default 9: r0-r8
+    cout << "颜色数: " << number_of_colors << endl;
+
     string file_fmj = file + ".fmj";
     string file_ast = file + ".2.ast.my";
 
@@ -77,7 +81,7 @@ void exec(string file)
     string file_quad_prepared = file + ".6-ssa-prepared.my";
     string file_quad_color_xml = file + ".6-ssa-prepared.clr.my";
 
-    string file_rpi = file + ".s.my";
+    string file_rpi = file + ".7-s.my";
 
     cout << "读取: " << file_fmj << endl;
     ifstream fmjfile(file_fmj);
@@ -144,10 +148,6 @@ void exec(string file)
     quad::QuadProgram* tempQuad = xml2quad((file + ".4-prepared-xml.quad").c_str());
     quad2file(tempQuad, (file + ".6-ssa-prepared").c_str(), true);
 
-    // 寄存器数量
-    int number_of_colors = 5; // default 9: r0-r8
-    cout << "颜色数: " << number_of_colors << endl;
-
     cout << "写入: " << file_quad_prepared << endl;
     QuadProgram* x7 = prepareRegAlloc(x5); // TODO: 是否启动 x6
     quad2file(x7, file_quad_prepared.c_str(), true);
@@ -173,20 +173,23 @@ int main(int argc, const char* argv[])
     filesystem::path filePath(__FILE__);
     filesystem::path directory = filePath.parent_path();
     chdir(directory.c_str());
-    chdir("../../test/input_example");
+    // chdir("../../test");
+    chdir("../../test/fmj_normal");
 
     vector<string> files;
+    files.push_back("example_mod");
+
     // files.push_back("hw8test06");
 
-    files.push_back("bubblesort");
-    files.push_back("fibonacci");
+    // files.push_back("bubblesort");
+    // files.push_back("fibonacci");
 
-    // hw8测试文件
-    for (int i = 0; i <= 12; i++) {
-        char file_name[100];
-        sprintf(file_name, "hw8test%02d", i);
-        files.push_back(string(file_name));
-    }
+    // // hw8测试文件
+    // for (int i = 0; i <= 12; i++) {
+    //     char file_name[100];
+    //     sprintf(file_name, "hw8test%02d", i);
+    //     files.push_back(string(file_name));
+    // }
 
     for (auto file : files) {
         cout << file << endl;
