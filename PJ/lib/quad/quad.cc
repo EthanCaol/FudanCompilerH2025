@@ -2,6 +2,8 @@
 #undef DEBUG
 
 #include <iostream>
+#include <fstream>
+#include <cstring>
 #include <string>
 #include <set>
 #include "quad.hh"
@@ -82,7 +84,7 @@ string QuadTerm::get_name()
     if (kind == QuadTermKind::MAME) {
         return get<std::string>(term);
     }
-    return "";
+    return nullptr;
 }
 
 QuadTerm* QuadTerm::clone() const
@@ -724,4 +726,26 @@ QuadReturn* QuadReturn::clone() const
 {
     QuadTerm* newValue = value ? value->clone() : nullptr;
     return new QuadReturn(node, newValue, cloneTemps(def), cloneTemps(use));
+}
+
+void quad2file(Quad* quad, string filename, bool print_def_use)
+{
+#ifdef DEBUG
+    cout << "In quad2file, writing to: " << filename << endl;
+#endif
+    if (quad == nullptr) {
+        cerr << "Error: Quad is null!" << endl;
+        return;
+    }
+    std::string output_str;
+    output_str.reserve(10000);
+    quad->print(output_str, 0, print_def_use);
+    std::ofstream out(filename);
+    if (out.is_open()) {
+        out << output_str;
+        out.close();
+    } else {
+        cerr << "Error: Unable to open file " << filename << endl;
+    }
+    return;
 }

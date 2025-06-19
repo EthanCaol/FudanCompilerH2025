@@ -11,6 +11,7 @@ target_link_libraries(${MAIN} PUBLIC
     ast
     frontend
     ir
+    opt
     quad
     quadflow
     util

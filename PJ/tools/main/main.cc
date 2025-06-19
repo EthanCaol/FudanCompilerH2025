@@ -40,6 +40,9 @@
 #include "blocking.hh"
 #include "quadssa.hh"
 
+// .4-ssa.quad -> .4-ssa-opt.quad
+#include "opt.hh"
+
 using namespace std;
 using namespace fdmj;
 using namespace tree;
@@ -63,12 +66,15 @@ int main(int argc, const char* argv[])
 
     string file_fmj = file + ".fmj";
     string file_ast = file + ".2.ast.my";
+
     string file_irp = file + ".3.irp.my";
     string file_irp_canon = file + ".3.irp-canon.my";
+
     string file_quad = file + ".4.quad.my";
     string file_quad_xml = file + ".4-xml.quad.my";
     string file_quad_block = file + ".4-block.quad.my";
     string file_quad_ssa = file + ".4-ssa.quad.my";
+    string file_quad_ssa_opt = file + ".4-ssa-opt.quad.my";
 
     cout << "读取: " << file_fmj << endl;
     ifstream fmjfile(file_fmj);
@@ -163,6 +169,12 @@ int main(int argc, const char* argv[])
     out_ssa << temp_str;
     out_ssa.flush();
     out_ssa.close();
+
+    // ----------------------------------------------------------------
+
+    QuadProgram* x6 = optProg(x5);
+    quad2file(x6, file_quad_ssa_opt.c_str(), true);
+
 
     out << "-----Done---" << endl << endl;
     return EXIT_SUCCESS;
