@@ -39,3 +39,6 @@ build/
 
 *.my
 *.s
+
+PJ/test/*
+!PJ/test/*.fmj
