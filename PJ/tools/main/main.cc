@@ -87,19 +87,10 @@ void exec(string file)
     cout << "读取: " << file_fmj << endl;
     ifstream fmjfile(file_fmj);
     fdmj::Program* root = fdmj::fdmjParser(fmjfile, false);
-    if (root == nullptr) {
-        cout << "AST无效" << endl;
-        exit(1);
-    }
 
     cout << "写入: " << file_ast << endl;
     AST_Semant_Map* semant_map = semant_analyze(root);
-    // semant_map->getNameMaps()->print();
     x = ast2xml(root, semant_map, with_location_info, true);
-    if (x->Error()) {
-        cout << "AST无效" << endl;
-        exit(1);
-    }
     x->SaveFile(file_ast.c_str());
 
     cout << "写入: " << file_irp << endl;
@@ -139,14 +130,14 @@ void exec(string file)
 
     // ----------------------------------------------------------------
 
-    // cout << "写入: " << file_quad_ssa_opt << endl;
-    // QuadProgram* x6 = optProg(x5);
-    // quad2file(x6, file_quad_ssa_opt.c_str(), true);
+    cout << "写入: " << file_quad_ssa_opt << endl;
+    QuadProgram* x6 = optProg(x5);
+    quad2file(x6, file_quad_ssa_opt.c_str(), true);
 
     // ----------------------------------------------------------------
 
     cout << "写入: " << file_quad_prepared << endl;
-    QuadProgram* x7 = prepareRegAlloc(x5); // TODO: 是否启动 x6
+    QuadProgram* x7 = prepareRegAlloc(x5);
     quad2file(x7, file_quad_prepared.c_str(), true);
 
     cout << "着色: " << file_quad_color_xml << endl;
@@ -167,28 +158,35 @@ void exec(string file)
 int main(int argc, const char* argv[])
 {
     // 切换到test目录
-    filesystem::path filePath(__FILE__);
-    filesystem::path directory = filePath.parent_path();
-    chdir(directory.c_str());
-    chdir("../../test");
+    // filesystem::path filePath(__FILE__);
+    // filesystem::path directory = filePath.parent_path();
+    // chdir(directory.c_str());
+    // chdir("../../test");
 
     vector<string> files;
-    // files.push_back("hw10test00");
+
+    // 处理命令行单文件
+    string filename = argv[1];
+    assert(filename.size() >= 4 && filename.substr(filename.size() - 4) == ".fmj");
+    size_t dotPos = filename.find_last_of('.');
+    if (dotPos != std::string::npos) {
+        files.push_back(filename.substr(0, dotPos));
+    }
 
     // 遍历当前目录下的所有文件
-    for (const auto& entry : fs::directory_iterator(".")) {
-        if (entry.is_regular_file()) {
-            const std::string filename = entry.path().filename().string();
+    // for (const auto& entry : fs::directory_iterator(".")) {
+    //     if (entry.is_regular_file()) {
+    //         const std::string filename = entry.path().filename().string();
 
-            // 检查是否以 .fmj 结尾
-            if (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".fmj") {
-                size_t dotPos = filename.find_last_of('.');
-                if (dotPos != std::string::npos) {
-                    files.push_back(filename.substr(0, dotPos));
-                }
-            }
-        }
-    }
+    //         // 检查是否以 .fmj 结尾
+    //         if (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".fmj") {
+    //             size_t dotPos = filename.find_last_of('.');
+    //             if (dotPos != std::string::npos) {
+    //                 files.push_back(filename.substr(0, dotPos));
+    //             }
+    //         }
+    //     }
+    // }
 
     for (auto file : files) {
         cout << file << endl;

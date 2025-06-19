@@ -1,5 +1,4 @@
 RM       = rm -rf
-MAKEFLAGS = --no-print-directory
 
 .PHONY: build clean rebuild handin
 
