@@ -19,7 +19,7 @@ main$L102:
          bgt main$L104
 main$L103: 
          mov r0, #10
-         mul r0, r0, r-1
+         mul r0, r0, r0
          sub sp, fp, #32
          pop {r4-r10, fp, pc}
 main$L104: 

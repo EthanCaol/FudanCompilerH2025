@@ -260,9 +260,9 @@ void AST_Semant_Visitor::visit(fdmj::While* node)
 {
     node->exp->accept(*this);
     if (node->stm != nullptr) {
-        is_in_while = true;
+        is_in_while++;
         node->stm->accept(*this);
-        is_in_while = false;
+        is_in_while--;
     }
 
     // 检查Exp为int

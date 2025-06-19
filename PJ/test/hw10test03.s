@@ -24,7 +24,7 @@ main$L103:
 main$L108: 
          add r0, r0, #3
 main$L109: 
-         mul r0, r0, r-1
+         mul r0, r0, r0
          sub sp, fp, #32
          pop {r4-r10, fp, pc}
 main$L104: 

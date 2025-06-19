@@ -85,7 +85,7 @@ private:
 
     string current_class_name;
     string current_method_name;
-    bool is_in_while = false;
+    int is_in_while = 0;
 
     string fetch_class_name;
     bool is_fetch_class_var = false;

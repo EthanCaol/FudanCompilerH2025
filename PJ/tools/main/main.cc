@@ -173,22 +173,22 @@ int main(int argc, const char* argv[])
     chdir("../../test");
 
     vector<string> files;
-    files.push_back("hw10test00");
+    // files.push_back("hw10test00");
 
     // 遍历当前目录下的所有文件
-    // for (const auto& entry : fs::directory_iterator(".")) {
-    //     if (entry.is_regular_file()) {
-    //         const std::string filename = entry.path().filename().string();
+    for (const auto& entry : fs::directory_iterator(".")) {
+        if (entry.is_regular_file()) {
+            const std::string filename = entry.path().filename().string();
 
-    //         // 检查是否以 .fmj 结尾
-    //         if (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".fmj") {
-    //             size_t dotPos = filename.find_last_of('.');
-    //             if (dotPos != std::string::npos) {
-    //                 files.push_back(filename.substr(0, dotPos));
-    //             }
-    //         }
-    //     }
-    // }
+            // 检查是否以 .fmj 结尾
+            if (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".fmj") {
+                size_t dotPos = filename.find_last_of('.');
+                if (dotPos != std::string::npos) {
+                    files.push_back(filename.substr(0, dotPos));
+                }
+            }
+        }
+    }
 
     for (auto file : files) {
         cout << file << endl;
