@@ -1,4 +1,4 @@
-.PHONY: build compile run clean
+.PHONY: clean build compile run run-one
 
 clean:
 	rm -rf build
@@ -19,7 +19,7 @@ compile: build
 			-o "$$base" "$$base.s" ../vendor/libsysy/libsysy32.s -lm || exit 1; \
 	done
 
-run: compile
+run:
 	cd test && \
 	for file in $$(ls .); do \
 		if [ "$${file#*.}" = "s" ]; then \
@@ -27,3 +27,12 @@ run: compile
 			qemu-arm $${file%%.*}; \
 		fi; \
 	done; \
+
+run-one:
+	@test -n "$(word 2, $(MAKECMDGOALS))" || { echo "Usage: make run-one filename.fmj"; exit 1; }
+	@file="$(word 2, $(MAKECMDGOALS))" && \
+	base=$$(basename "$$file" .fmj) && \
+	cd test && \
+	qemu-arm "$$base" || exit 1; \
+
+

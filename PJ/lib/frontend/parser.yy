@@ -339,8 +339,6 @@ FORMALREST: FORMALREST ',' TYPE ID
 
 
 
-
-
 // 语句列表
 STMLIST: // empty
     { $$ = new vector<Stm*>(); }
